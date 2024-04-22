@@ -186,11 +186,11 @@ function SKICLoadConfig(itemload: string):
                 set {skitemcreator.items.database::%{_file_name}%::attributes::*} to {_attributes::*}
                 loop {_attributes::*}:
                     set {_attr::*} to loop-value-2 split at ":"
-                    set {_value} to {_attr::2} parsed as integer
+                    set {_value} to {_attr::3} parsed as integer
                     if {_value} is set:
                         set {_nbt} to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
                         set {_a::*} to compound list tag "AttributeModifiers" of {_nbt}
-                        add nbt compound of "{AttributeName:""%{_attr::1}%"",Amount:%{_value}%,Operation:0,Slot:chest,UUID:[I;-1201124,10148,125632,-20296],Name:""generic.max_health""}" to {_a::*}
+                        add nbt compound of "{AttributeName:""%{_attr::1}%"",Amount:%{_value}%,Operation:0,Slot:%{_attr::2}%,UUID:[I;-1201124,10148,125632,-20296],Name:""generic.max_health""}" to {_a::*}
                         set compound list tag "AttributeModifiers" of {_nbt} to {_a::*}
             #Get custom tags
             set {_custom-tags::*} to yaml list "custom-tags" from loop-value
@@ -347,10 +347,23 @@ function SKICLoadConfig(itemload: string):
                     set {skitemcreator.items.database::%{_file_name}%::damage-durability-events::*} to {_damage-durability-events::*}
                 else:
                     set {skitemcreator.items.database::%{_file_name}%::damage-durability-events::*} to "BREAK" and "DAMAGE"
+            #Disabled behaviors
+            set {_disabled-behaviors::*} to yaml list "disabled-behaviors" from loop-value
+            if {_disabled-behaviors::*} is set:
+                set {skitemcreator.items.database::%{_file_name}%::disabled-behaviors::*} to {_disabled-behaviors::*}
+                set string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item} to {_disabled-behaviors::*}
+            #Use layout
+            set {_use-layout} to yaml value "use-layout" from loop-value
+            if {_use-layout} is not set:
+                set {_use-layout} to true
+            set {skitemcreator.items.database::%{_file_name}%::use-layout} to {_use-layout}
+
             #
             #Final register
             #
-            set {skitemcreator.items.database::%{_file_name}%::final-item} to SKICLoreLayoutOrganize({skitemcreator.items.database::%{_file_name}%::final-item})
+            #If use-layout is false, don't organize lore
+            if {skitemcreator.items.database::%{_file_name}%::use-layout} is true:
+                set {skitemcreator.items.database::%{_file_name}%::final-item} to SKICLoreLayoutOrganize({skitemcreator.items.database::%{_file_name}%::final-item})
 
         #
         #Armor sets
@@ -1290,3 +1303,87 @@ on damage:
         if {skitemcreator.items.database::%{_internal}%::custom-durability} > 0:
             if {skitemcreator.items.database::%{_internal}%::damage-durability-events::*} contains "DAMAGE":
                 set tool of attacker to SKICDurabilityRemove(tool of attacker, 1)
+
+#
+#DISABLED BEHAVIORS
+#
+on consume:
+    if SKICInternalNameOfItem(event-item) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of event-item
+        if {_disabled-behaviors::*} contains "CONSUME":
+            cancel event
+on right click:
+    if SKICInternalNameOfItem(event-item) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of event-item
+        if {_disabled-behaviors::*} contains "RIGHT-CLICK":
+            cancel event
+on left click:
+    if SKICInternalNameOfItem(event-item) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of event-item
+        if {_disabled-behaviors::*} contains "LEFT-CLICK":
+            cancel event
+on place:
+    if SKICInternalNameOfItem(event-item) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of event-item
+        if {_disabled-behaviors::*} contains "PLACE":
+            cancel event
+on break:
+    if SKICInternalNameOfItem(event-item) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of event-item
+        if {_disabled-behaviors::*} contains "BREAK":
+            cancel event
+on drop:
+    if SKICInternalNameOfItem(event-item) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of event-item
+        if {_disabled-behaviors::*} contains "DROP":
+            cancel event
+on inventory click:
+    if SKICInternalNameOfItem(clicked slot) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of clicked slot
+        if {_disabled-behaviors::*} contains "INVENTORY-CLICK":
+            cancel event
+on damage:
+    attacker is set
+    victim is set
+    if SKICInternalNameOfItem(tool of attacker) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of tool of attacker
+        if {_disabled-behaviors::*} contains "DAMAGE":
+            cancel event
+on armor change:
+    wait 1 tick
+    if SKICInternalNameOfItem(helmet of player) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of helmet of player
+        if {_disabled-behaviors::*} contains "WEAR":
+            set {_i} to helmet of player
+            if player has enough space for {_i}:
+                give {_i} to player
+            else:
+                drop {_i} at player
+            set helmet of player to air
+    if SKICInternalNameOfItem(chestplate of player) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of chestplate of player
+        if {_disabled-behaviors::*} contains "WEAR":
+            set {_i} to chestplate of player
+            if player has enough space for {_i}:
+                give {_i} to player
+            else:
+                drop {_i} at player
+            set chestplate of player to air
+    if SKICInternalNameOfItem(leggings of player) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of leggings of player
+        if {_disabled-behaviors::*} contains "WEAR":
+            set {_i} to leggings of player
+            if player has enough space for {_i}:
+                give {_i} to player
+            else:
+                drop {_i} at player
+            set leggings of player to air
+    if SKICInternalNameOfItem(boots of player) is set:
+        set {_disabled-behaviors::*} to string list tag "tag;ITEMCREATOR-DISABLED-BEHAVIORS" of nbt compound of boots of player
+        if {_disabled-behaviors::*} contains "WEAR":
+            set {_i} to boots of player
+            if player has enough space for {_i}:
+                give {_i} to player
+            else:
+                drop {_i} at player
+            set boots of player to air

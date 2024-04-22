@@ -60,7 +60,7 @@ conditions:
 
 #This feature allows adding a line in the item's description that represents the item's quality. 
 #If the item can generate random statistics, the item's quality will be calculated in percentages so
-#that the player can know if the item they obtained has maximum statistics or not.
+#that the player can know if the item they obtained is good or not.
 enable-quality: true
 quality-display: "<#c58a02>⭐ <#e8a302>Item quality&8: {percent}%"
 

@@ -1,0 +1,24 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: CARROT
+
+#Display name
+name: "&aNon-edible carrot"
+
+#Lore. (Optional)
+lore:
+  - "&7&oSadly you can't eat this."
+
+#Rarity
+rarity: common
+
+#Disabled behaviors
+#You can disable behaviors of items if you want
+#List of behaviors: CONSUME, PLACE, DAMAGE, DROP, WEAR, RIGHT-CLICK, LEFT-CLICK, BREAK, INVENTORY-CLICK
+#Some events don't work for certain types of items, because of minecraft's logic. (for example, CONSUME behavior doesn't work for blocks.)
+disabled-behaviors:
+  - CONSUME

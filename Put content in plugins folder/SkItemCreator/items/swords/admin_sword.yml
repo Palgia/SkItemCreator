@@ -19,9 +19,9 @@ lore:
   - "&7&opermission &c&orank.admin"
 
 #Attributes. (Optional)
-#Define your attributes as follows: <attribute>:<value>
+#Define your attributes as follows: <attribute>:<slot>:<value>
 attributes:
-  - generic.attack_damage:150
+  - generic.attack_damage:mainhand:150
 
 #Stats of item
 #Requires SkRPG and SkRPGItemsAddon installed.
