@@ -1,0 +1,13 @@
+#Register custom craft 
+crafts:
+  god-pickaxe:
+    #Does it needs a permission ? If yes, write it
+    permission: godpickaxe.craft
+    items:
+      x: AIR
+      n: NETHER_STAR
+      p: ultra-pickaxe
+    layout:
+      top-line: x, n, x
+      mid-line: n, p, n
+      bot-line: x, n, x

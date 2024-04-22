@@ -1,0 +1,81 @@
+#
+#Write here all name of folders in plugins/SkItemCreator/items
+#This is needed to loop all yaml in the folders
+categories:
+  - swords
+  - staff
+  - misc
+  - tools
+  - armors
+
+#
+#Define the lore layout of items
+#
+#Placeholders:
+#- {void} = Blank line
+#- {stat} = Items statistics (SkRPG and SkRPGItemsAddon needed)
+#- {text} = Basic lore in "lore:" value
+#- {rarity} = Item rarity
+#- {conditions} = Item's conditions
+#- {damage} = Item's custom damage
+#- {durability} = Item's custom durability
+lore-layout:
+  - "{void}"
+  - "{conditions}"
+  - "{void}"
+  - "{damage}"
+  - "{void}"
+  - "{stat}"
+  - "{void}"
+  - "{text}"
+  - "{void}"
+  - "{durability}"
+  - "{void}"
+  - "{rarity}"
+
+#Create rarities for your items
+rarities:
+  common:
+    display: "&a&lCOMMON"
+  rare:
+    display: "&b&lRARE"
+  legendary:
+    display: "&6&lLEGENDARY"
+  mythic:
+    display: "&d&lMYTHIC"
+  unique:
+    display: "&c&lUNIQUE"
+
+#Conditions to use or equip items
+conditions:
+  #If player has a stat at minimum level
+  has-minimum-stat:
+    #Use {stat} and {stat-amount} as placeholders
+    display: "<#4c0117>❣ {stat} &7Min: &f{stat-amount}"
+    message: "&c&l✖ &cYou need &f{stat-amount} {stat} &cto use this item!"
+  #If player has a permission
+  has-permission:
+    #This condition doesn't have a display. You can create one if you want.
+    message: "&c&l✖ &cYou don't have the required permission to use this item!"
+
+#This feature allows adding a line in the item's description that represents the item's quality. 
+#If the item can generate random statistics, the item's quality will be calculated in percentages so
+#that the player can know if the item they obtained has maximum statistics or not.
+enable-quality: true
+quality-display: "<#c58a02>⭐ <#e8a302>Item quality&8: {percent}%"
+
+#
+#Cooldown display for messages (used in mythic-skills for example)
+#Use {cd} as placeholder for cooldown
+cooldown-message: "&cYou need to wait &e{cd} &cbefore using this again."
+#
+#Not enough mana message (used in mythic-skills for example)
+not-enough-mana-message: "&cYou don't have enough mana!"
+
+#Display of the custom damage parameter for items
+#Use {amount} as a placeholder for the damage
+damage-display: "&c⚔ Damage: {amount}"
+
+#Display of custom durability
+#Use {min}, {max} and {percent} as placeholders
+custom-durability-display: "&7♻ Durability: &f{min}&7/&f{max} &8[{percent}]"

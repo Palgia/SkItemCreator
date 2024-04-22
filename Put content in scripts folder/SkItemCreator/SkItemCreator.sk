@@ -1,0 +1,1292 @@
+
+import:
+    org.bukkit.Material
+    org.bukkit.inventory.ItemStack
+#
+#LOAD CONFIG + ITEMS
+#
+on load:
+    wait 1 tick
+    SKICLoadConfig("ALL")
+
+function SKICLoadConfig(itemload: string):
+    if yaml file "plugins/SkItemCreator/config.yml" exists:
+        #Unload everything just to be sure
+        loop all of the currently loaded yaml files:
+            unload yaml loop-value-1
+        #Clearing everything
+        delete {skitemcreator.armor-sets::*}
+        delete {skitemcreator.main-config::*}
+        delete {skitemcreator.crafts::*}
+
+        #
+        #Load config
+        #
+        send "&d[SkItemCreator] &fLoading config..." to console
+        load yaml "plugins/SkItemCreator/config.yml" as "config"
+
+        #Categories
+        set {skitemcreator.main-config::categories::*} to yaml list "categories" from "config"
+
+        #Lore layout
+        set {skitemcreator.main-config::lore-layout::*} to yaml list "lore-layout" from "config"
+
+        #Item rarities
+        loop yaml node keys "rarities" from "config":
+            set {_node::*} to "%loop-node%" split at "."
+            if {_node::2} is set:
+                add {_node::2} to {skitemcreator.main-config::rarities::*}
+                set {_display} to yaml value "%loop-node%.display" from "config"
+                set {skitemcreator.main-config::rarities::%{_node::2}%::display} to {_display}
+
+        #Conditions
+        loop yaml node keys "conditions" from "config":
+            set {_node::*} to "%loop-node%" split at "."
+            if {_node::2} is set:        
+                add {_node::2} to {skitemcreator.main-config::conditions::*}
+                set {_display} to yaml value "%loop-node%.display" from "config"
+                set {_message} to yaml value "%loop-node%.message" from "config"
+                set {skitemcreator.main-config::conditions::%{_node::2}%::display} to {_display}
+                set {skitemcreator.main-config::conditions::%{_node::2}%::message} to {_message}
+
+        #Enable/disable quality
+        set {_enable-quality} to yaml value "enable-quality" from "config"
+        set {skitemcreator.main-config::enable-quality} to {_enable-quality}
+
+        #Quality display
+        if {_enable-quality} is true:
+            set {_quality-display} to yaml value "quality-display" from "config"
+            set {skitemcreator.main-config::quality-display} to {_quality-display}
+
+        #Cooldown message
+        set {_cooldown-msg} to yaml value "cooldown-message" from "config"
+        set {skitemcreator.main-config::cooldown-message} to {_cooldown-msg}
+
+        #Not enough mana
+        set {_not-enough-mana} to yaml value "not-enough-mana" from "config"
+        set {skitemcreator.main-config::not-enough-mana} to {_not-enough-mana}
+
+        #Damage display
+        set {_damage-display} to yaml value "damage-display" from "config"
+        set {skitemcreator.main-config::damage-display} to formatted {_damage-display}
+
+        #Custom durability display
+        set {skitemcreator.main-config::custom-durability-display} to formatted yaml value "custom-durability-display" from "config"
+
+        #
+        #Load items yml
+        #
+        #Register all files
+        unload yaml "config"
+        delete {_files::*}
+        if {_itemload} is "ALL":
+            delete {skitemcreator.items.database::*}
+            load all yaml from directory "plugins/SkItemCreator/items"
+            loop {skitemcreator.main-config::categories::*}:
+                load all yaml from directory "plugins/SkItemCreator/items/%loop-value%"
+            loop all of the currently loaded yaml files:
+                add loop-value to {_files::*}   
+        else:
+            load all yaml from directory "plugins/SkItemCreator/items"
+            loop {skitemcreator.main-config::categories::*}:
+                load all yaml from directory "plugins/SkItemCreator/items/%loop-value%"       
+            loop all of the currently loaded yaml files:
+                if loop-value contains {_itemload}:
+                    add loop-value to {_files::*}   
+        #Get values
+        loop {_files::*}:
+
+            #Register filename
+            set {_file_name::*} to loop-value split by "/"
+            set {_file_name} to {_file_name::%size of {_file_name::*}%}
+            replace all ".yml" with "" in {_file_name}
+            if {_itemload} is not "ALL":
+                delete {skitemcreator.items.database::%{_file_name}%::final-item}
+                delete {skitemcreator.items.database::%{_file_name}%::*}
+                remove {_file_name} from {skitemcreator.items.database::*}
+            add {_file_name} to {skitemcreator.items.database::*}
+
+            #Get minecraft type of item
+            set {_item-type} to yaml value "type" from loop-value
+            if {_item-type} is set:
+                set {_item-material} to Material.getMaterial({_item-type})
+                if {_item-material} is set:
+                    set {_i} to new ItemStack({_item-material})
+                    set {skitemcreator.items.database::%{_file_name}%::type} to {_i}
+                    set {skitemcreator.items.database::%{_file_name}%::final-item} to {_i}
+                    #Register internal name in NBT
+                    set {_nbt} to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
+                    set string tag "tag;SKIC-INTERNAL-NAME" of {_nbt} to {_file_name}
+            #If ItemsAdder is installed
+            parse if plugin "ItemsAdder" is enabled:
+                set {_item-type} to yaml value "itemsadder-type" from loop-value
+                if {_item-type} is set:
+                    set {_itemsadder.customstack.class} to class "dev.lone.itemsadder.api.CustomStack"
+                    set {_itemsadder.itemsadder.class} to class "dev.lone.itemsadder.api.ItemsAdder"
+                    set {_instance} to {_itemsadder.customstack.class}.getInstance({_item-type})
+                    set {skitemcreator.items.database::%{_file_name}%::final-item} to {_instance}.getItemStack()
+            #Get name
+            set {_item-name} to yaml value "name" from loop-value
+            if {_item-name} is set:
+                set {skitemcreator.items.database::%{_file_name}%::name} to formatted {_item-name}
+                set name of {skitemcreator.items.database::%{_file_name}%::final-item} to {_item-name}
+            #Get custom model data
+            set {_custom-model} to yaml value "custom-model" from loop-value
+            if {_custom-model} is set:
+                set {skitemcreator.items.database::%{_file_name}%::custom-model} to {_custom-model}
+                set custom model data of {skitemcreator.items.database::%{_file_name}%::final-item} to {_custom-model}
+            #Get dye
+            set {_dye} to yaml value "dye" from loop-value
+            if {_dye} is set:
+                set {skitemcreator.items.database::%{_file_name}%::dye} to {_dye}
+                set {_dye::*} to {_dye} split by ","
+                set {_r} to {_dye::1} parsed as integer
+                set {_g} to {_dye::2} parsed as integer
+                set {_b} to {_dye::3} parsed as integer
+                dye {skitemcreator.items.database::%{_file_name}%::final-item} ({_r}, {_g}, {_b})
+            #Get trim
+            set {_trim-material} to yaml value "trim.material" from loop-value
+            set {_trim-pattern} to yaml value "trim.pattern" from loop-value
+            if {_trim-material} is set:
+                if {_trim-pattern} is set:
+                    add nbt compound of "{Trim:{material:""minecraft:%lowercase {_trim-material}%"",pattern:""minecraft:%lowercase {_trim-pattern}%""}}" to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
+
+
+            #Get lore
+            set {_lore::*} to yaml list "lore" from loop-value
+            if {_lore::*} is set:
+                set {skitemcreator.items.database::%{_file_name}%::lore::*} to formatted {_lore::*}
+                set lore of {skitemcreator.items.database::%{_file_name}%::final-item} to formatted {_lore::*}
+            #Get custom damage
+            #This wil override the damage attribute, unless you change it in 'attributes' config
+            #You can set a single value or a range (like 25~255)
+            set {_damage} to yaml value "damage" from loop-value
+            if {_damage} is set:
+                set {_dmg::*} to {_damage} split by "~"
+                if {_dmg::2} is set:
+                    set {skitemcreator.items.database::%{_file_name}%::damage::max} to {_dmg::2} parsed as integer
+                    set {skitemcreator.items.database::%{_file_name}%::damage::min} to {_dmg::1} parsed as integer
+                    set {_damage-display} to {skitemcreator.main-config::damage-display}
+                    replace all unformatted "{amount}" with "&f%{skitemcreator.items.database::%{_file_name}%::damage::min}%&8-&f%{skitemcreator.items.database::%{_file_name}%::damage::max}%" in {_damage-display}
+                    add {_damage-display} to lore of {skitemcreator.items.database::%{_file_name}%::final-item}
+                    #Override damage attribute
+                    add nbt compound of "{AttributeName:""generic.attack_damage"",Amount:0,Operation:0,Slot:chest,UUID:[I;-1201124,10148,125632,-20296],Name:""generic.max_health""}" to {_override-dmg::*}
+                    set compound list tag "AttributeModifiers" of nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item} to {_override-dmg::*}
+                else:
+                    set {skitemcreator.items.database::%{_file_name}%::damage} to {_damage} parsed as integer
+                    set {_damage-display} to {skitemcreator.main-config::damage-display}
+                    replace all unformatted "{amount}" with "&f%{skitemcreator.items.database::%{_file_name}%::damage}%" in {_damage-display}
+                    add {_damage-display} to lore of {skitemcreator.items.database::%{_file_name}%::final-item}
+                    #Override damage attribute
+                    add nbt compound of "{AttributeName:""generic.attack_damage"",Amount:0,Operation:0,Slot:chest,UUID:[I;-1201124,10148,125632,-20296],Name:""generic.max_health""}" to {_override-dmg::*}
+                    set compound list tag "AttributeModifiers" of nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item} to {_override-dmg::*}
+            #Get attributes
+            set {_attributes::*} to yaml list "attributes" from loop-value
+            if {_attributes::*} is set:
+                set {skitemcreator.items.database::%{_file_name}%::attributes::*} to {_attributes::*}
+                loop {_attributes::*}:
+                    set {_attr::*} to loop-value-2 split at ":"
+                    set {_value} to {_attr::2} parsed as integer
+                    if {_value} is set:
+                        set {_nbt} to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
+                        set {_a::*} to compound list tag "AttributeModifiers" of {_nbt}
+                        add nbt compound of "{AttributeName:""%{_attr::1}%"",Amount:%{_value}%,Operation:0,Slot:chest,UUID:[I;-1201124,10148,125632,-20296],Name:""generic.max_health""}" to {_a::*}
+                        set compound list tag "AttributeModifiers" of {_nbt} to {_a::*}
+            #Get custom tags
+            set {_custom-tags::*} to yaml list "custom-tags" from loop-value
+            if {_custom-tags::*} is set:
+                set {skitemcreator.items.database::%{_file_name}%::custom-tags::*} to {_custom-tags::*}
+                loop {_custom-tags::*}:
+                    set {_ct::*} to loop-value-2 split at ":"
+                    if {_ct::2} is set:
+                        set {_nbt} to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
+                        #Check if value is int or not
+                        set {_int} to {_ct::2} parsed as integer
+                        if {_int} is set:
+                            set int tag "tag;%{_ct::1}%" of {_nbt} to {_int}
+                        else:
+                            set string tag "tag;%{_ct::1}%" of {_nbt} to {_ct::2}                   
+            #Apply stats
+            #Checks if SKRPG and SKRPGITEMSADDON are loaded
+            parse if script "SkRPG/Main/!Main/SkRPG.sk" is loaded:
+                parse if script "SkRPG/Main/Addons/SkRPGItemsAddon.sk" is loaded:
+                    set {_stats::*} to yaml list "stats" from loop-value
+                    if {_stats::*} is set:
+                        loop {_stats::*}:
+                            set {_st::*} to loop-value-2 split at ":"
+                            add {_st::1} to {skitemcreator.items.database::%{_file_name}%::stats::*} 
+                            #Check if a range is set
+                            set {_st-range::*} to {_st::2} split at "~"
+                            if {_st-range::2} is set:
+                                #Tells to Skript that this item can generate random stats
+                                set {skitemcreator.items.database::%{_file_name}%::has-random-stats} to true
+                                #Store min and max range
+                                set {skitemcreator.items.database::%{_file_name}%::stats::%{_st::1}%::min} to {_st-range::1} parsed as integer
+                                set {skitemcreator.items.database::%{_file_name}%::stats::%{_st::1}%::max} to {_st-range::2} parsed as integer
+                                set {skitemcreator.items.database::%{_file_name}%::final-item} to skRPGItemsAddonSetStat({skitemcreator.items.database::%{_file_name}%::final-item}, {_st::1}, {_st-range::2} parsed as integer)
+                            else:
+                                #Check if value is set
+                                set {_int} to {_st::2} parsed as integer
+                                set {skitemcreator.items.database::%{_file_name}%::stats::%{_st::1}%::static-amount} to {_int}
+                                if {_int} is set:
+                                    set {skitemcreator.items.database::%{_file_name}%::final-item} to skRPGItemsAddonSetStat({skitemcreator.items.database::%{_file_name}%::final-item}, {_st::1}, {_int})
+            #Item flags
+            set {_item-flags::*} to yaml list "item-flags" from loop-value
+            if {_item-flags::*} is set:
+                set {skitemcreator.items.database::%{_file_name}%::item-flags::*} to {_item-flags::*}
+                loop {_item-flags::*}:
+                    set {_flag} to loop-value-2 parsed as itemflag
+                    add {_flag} to item flags of {skitemcreator.items.database::%{_file_name}%::final-item}
+            #Rarity:
+            set {_rarity} to yaml value "rarity" from loop-value
+            if {_rarity} is set:
+                if {skitemcreator.main-config::rarities::*} contains {_rarity}:
+                    add "%{skitemcreator.main-config::rarities::%{_rarity}%::display}%" to lore of {skitemcreator.items.database::%{_file_name}%::final-item}
+                    set {_nbt} to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
+                    set string tag "tag;SKIC-RARITY" of {_nbt} to {_rarity}
+            #Conditions
+            loop yaml node keys "conditions" from loop-value:
+                set {_node::*} to "%loop-node%" split at "."
+                if {_node::2} is set:
+                    add {_node::2} to {skitemcreator.items.database::%{_file_name}%::conditions::*}
+                    #Store condition in nbt of item
+                    add {_node::2} to string list tag "tag;SKIC-CONDITIONS" of nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
+                    set {_value} to yaml value "%loop-node%.value" from loop-value-1
+                    #Check if the condition has a value, then store it
+                    if {_value} is set:
+                        set {skitemcreator.items.database::%{_file_name}%::conditions::%{_node::2}%::value} to {_value}
+                    set {_amount} to yaml value "%loop-node%.amount" from loop-value-1
+                    #Check if the condition's value has an amount, then store it
+                    if {_amount} is set:
+                        set {skitemcreator.items.database::%{_file_name}%::conditions::%{_node::2}%::amount} to {_amount}
+                    #Add condition to lore if display exists
+                    if {skitemcreator.main-config::conditions::%{_node::2}%::display} is set:
+                        #Replace placeholders
+                        set {_display} to {skitemcreator.main-config::conditions::%{_node::2}%::display}
+                        set {_return-display} to SKICReplaceConditionPlaceholders({_display}, {_file_name}, {_node::2})
+                        add formatted {_return-display} to lore of {skitemcreator.items.database::%{_file_name}%::final-item}
+            #Skin on skull
+            set {_skull_skin} to yaml value "skull-skin" from loop-value
+            if {_skull_skin} is set:
+                set {skitemcreator.items.database::%{_file_name}%::skull-skin} to {_skull_skin}
+                #Modify nbt
+                set {_nbt} to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
+                add nbt compound of "{SkullOwner:{Id:[I;560730361,-2039592014,-1344041958,-1058039007],Properties:{textures:[{Value:""%{_skull_skin}%""}]}}}" to {_nbt}
+            #Head is helmet
+            #Allows specifying to SkRPG if the statistics present on the item should only take effect if the head is worn.
+            set {_head-is-helmet} to yaml value "head-is-helmet" from loop-value
+            if {_head-is-helmet} is set:
+                set {skitemcreator.items.database::%{_file_name}%::head-is-helmet} to {_head-is-helmet}
+                set string tag "tag;SKIC-HEAD-IS-HELMET" of nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item} to "%{_head-is-helmet}%"
+            #Mythic Skills
+            parse if plugin "MythicMobs" is enabled:
+                loop yaml node keys "mythic-skills" from loop-value:
+                    set {_node::*} to "%loop-node%" split at "."
+                    if {_node::2} is set:
+                        set {_skill} to {_node::2}
+                        add {_skill} to {skitemcreator.items.database::%{_file_name}%::mythic-skills::*}   
+                        #Mana cost            
+                        set {_mana-cost} to yaml value "%loop-node%.mana-cost" from loop-value-1
+                        if {_mana-cost} is set:
+                            set {skitemcreator.items.database::%{_file_name}%::mythic-skills::%{_skill}%::mana-cost} to {_mana-cost}  
+                        #Cooldown
+                        set {_cooldown} to yaml value "%loop-node%.cooldown" from loop-value-1
+                        if {_cooldown} is set:
+                            set {skitemcreator.items.database::%{_file_name}%::mythic-skills::%{_skill}%::cooldown} to {_cooldown}
+                        #Event
+                        set {_event} to yaml value "%loop-node%.event" from loop-value-1
+                        if {_event} is set:
+                            set {skitemcreator.items.database::%{_file_name}%::mythic-skills::%{_skill}%::event} to {_event}
+            #Enchants
+            set {_enchants::*} to yaml list "enchants" from loop-value
+            if {_enchants::*} is set:
+                loop {_enchants::*}:
+                    set {_e} to loop-value-2
+                    #Vanilla enchant
+                    set {_e::*} to {_e} split by ":"
+                    set {_enchant} to "%{_e::1}% %{_e::2}%" parsed as enchantment type
+                    enchant {skitemcreator.items.database::%{_file_name}%::final-item} with {_enchant}
+            #AdvancedEnchantments Enchants
+            #If this plugin is installed, use "advanced-enchants"
+            set {_advanced-enchants::*} to yaml list "advanced-enchants" from loop-value
+            if {_advanced-enchants::*} is set:
+                loop {_advanced-enchants::*}:
+                    set {_e} to loop-value-2
+                    #Vanilla enchant
+                    set {_e::*} to {_e} split by ":"
+                    set {_enchant} to {_e::1}
+                    set {_enchantlevel} to {_e::2} parsed as integer
+                    set {_advancedenchant-api.class} to class "net.advancedplugins.ae.api.AEAPI"
+                    set {skitemcreator.items.database::%{_file_name}%::final-item} to {_advancedenchant-api.class}.applyEnchant({_enchant}, {_enchantlevel}, {skitemcreator.items.database::%{_file_name}%::final-item})
+
+            #Skript effects:
+                loop yaml node keys "skript-effects" from loop-value:            
+                    set {_node::*} to "%loop-node%" split at "."
+                    if {_node::2} is set:
+                        set {_sk-effect} to {_node::2}
+                        add {_sk-effect} to {skitemcreator.items.database::%{_file_name}%::skript-effects::*}
+                        #Check if event is set
+                        set {_event} to yaml value "%loop-node%.event" from loop-value-1
+                        if {_event} is set:
+                            set {skitemcreator.items.database::%{_file_name}%::skript-effects::%{_sk-effect}%::event} to {_event}
+                            #Register effects
+                            set {_effects::*} to yaml list "%loop-node%.effects" from loop-value-1
+                            if {_effects::*} is set:
+                                set {skitemcreator.items.database::%{_file_name}%::skript-effects::%{_sk-effect}%::effects::*} to {_effects::*} 
+            #Custom durability
+            set {_custom-durability} to yaml value "custom-durability" from loop-value
+            if {_custom-durability} is set:
+                set {skitemcreator.items.database::%{_file_name}%::custom-durability} to {_custom-durability}
+                set int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item} to {_custom-durability}
+                set int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item} to {_custom-durability}
+                add SKICDurabilityPlaceholderUpdate({skitemcreator.items.database::%{_file_name}%::final-item}) to lore of {skitemcreator.items.database::%{_file_name}%::final-item}
+            #Custom durability events
+            if {_custom-durability} is set:
+                set {_damage-durability-events::*} to yaml list "damage-durability-events" from loop-value
+                if {_damage-durability-events::*} is set:
+                    set {skitemcreator.items.database::%{_file_name}%::damage-durability-events::*} to {_damage-durability-events::*}
+                else:
+                    set {skitemcreator.items.database::%{_file_name}%::damage-durability-events::*} to "BREAK" and "DAMAGE"
+            #
+            #Final register
+            #
+            set {skitemcreator.items.database::%{_file_name}%::final-item} to SKICLoreLayoutOrganize({skitemcreator.items.database::%{_file_name}%::final-item})
+
+        #
+        #Armor sets
+        #
+        #Unload everything just to be sure
+        loop all of the currently loaded yaml files:
+            unload yaml loop-value-1
+
+        load yaml "plugins/SkItemCreator/armor-sets.yml" as "armor-sets"
+
+        loop yaml node keys "armor-sets" from "armor-sets":      
+            set {_node::*} to "%loop-node%" split at "."
+            if {_node::2} is set:
+                set {_set} to {_node::2}
+                #Register armor set
+                add {_set} to {skitemcreator.armor-sets::*}
+                #
+                #Items
+                #
+                #Helmet
+                set {_item} to yaml value "%loop-node%.items.helmet" from "armor-sets"
+                if {_item} is set:
+                    if {skitemcreator.items.database::*} contains {_item}:
+                        set {skitemcreator.armor-sets::%{_set}%::helmet} to {_item}
+                        set string tag "tag;SKIC-ARMOR-SET" of nbt compound of {skitemcreator.items.database::%{_item}%::final-item} to {_set}
+                        add 1 to {skitemcreator.armor-sets::%{_set}%::size}
+                #Chestplate
+                set {_item} to yaml value "%loop-node%.items.chestplate" from "armor-sets"
+                if {_item} is set:
+                    if {skitemcreator.items.database::*} contains {_item}:
+                        set {skitemcreator.armor-sets::%{_set}%::chestplate} to {_item}
+                        set string tag "tag;SKIC-ARMOR-SET" of nbt compound of {skitemcreator.items.database::%{_item}%::final-item} to {_set}
+                        add 1 to {skitemcreator.armor-sets::%{_set}%::size}
+                #Leggings
+                set {_item} to yaml value "%loop-node%.items.leggings" from "armor-sets"
+                if {_item} is set:
+                    if {skitemcreator.items.database::*} contains {_item}:
+                        set {skitemcreator.armor-sets::%{_set}%::leggings} to {_item}
+                        set string tag "tag;SKIC-ARMOR-SET" of nbt compound of {skitemcreator.items.database::%{_item}%::final-item} to {_set}
+                        add 1 to {skitemcreator.armor-sets::%{_set}%::size}
+                #Boots
+                set {_item} to yaml value "%loop-node%.items.boots" from "armor-sets"
+                if {_item} is set:
+                    if {skitemcreator.items.database::*} contains {_item}:
+                        set {skitemcreator.armor-sets::%{_set}%::boots} to {_item}
+                        set string tag "tag;SKIC-ARMOR-SET" of nbt compound of {skitemcreator.items.database::%{_item}%::final-item} to {_set}
+                        add 1 to {skitemcreator.armor-sets::%{_set}%::size}
+                #
+                #Skript code
+                #
+                #Every second
+                loop yaml node keys "armor-sets.%{_set}%.trigger" from "armor-sets":
+                    set {_split::*} to "%loop-node-2%" split by "."
+                    set {_event} to {_split::%size of {_split::*}%}
+                    #Code to execute
+                    set {_execute::*} to yaml list "%loop-node-1%.trigger.%{_event}%.execute" from "armor-sets"
+                    if {_execute::*} is set:
+                        add {_execute::*} to {skitemcreator.armor-sets::%{_set}%::trigger::%{_event}%::execute::*}
+                    #MythicMobs Skills
+                    set {_mythic-skills::*} to yaml list "%loop-node-1%.trigger.%{_event}%.mythic-skills" from "armor-sets"
+                    if {_mythic-skills::*} is set:
+                        add {_mythic-skills::*} to {skitemcreator.armor-sets::%{_set}%::trigger::%{_event}%::mythic-skills::*}
+        #
+        #Crafts
+        #
+        #Unload everything just to be sure
+        loop all of the currently loaded yaml files:
+            unload yaml loop-value-1
+
+        load yaml "plugins/SkItemCreator/crafts.yml" as "crafts"
+        #Items
+        loop yaml node keys "crafts" from "crafts":
+            if loop-node is set:
+                set {_node::*} to "%loop-node%" split at "."
+                if {_node::2} is set:
+                    set {_result} to {_node::2}
+                    loop yaml node keys "crafts.%{_result}%.items" from "crafts":
+                        set {_node::*} to "%loop-node-2%" split at "."
+                        {_node::4} is set
+                        {_craft-material::%{_node::4}%} is not set
+                        add {_node::4} to {_craft-material::*}
+                        #Check if item is vanilla 
+                        set {_item-material} to Material.getMaterial((yaml value "crafts.%{_result}%.items.%{_node::4}%" from "crafts"))
+                        #Item is vanilla
+                        if {_item-material} is set:
+                            set {_craft-material::%{_node::4}%} to new ItemStack({_item-material})
+                        #Else
+                        else:
+                            set {_item} to yaml value "crafts.%{_result}%.items.%{_node::4}%" from "crafts"
+                            set {_craft-material::%{_node::4}%} to {skitemcreator.items.database::%unformatted {_item}%::final-item}
+
+                    #If items from craft are registered:
+                    if {_craft-material::*} is set:
+                        set {_top-line::*} to yaml value "crafts.%{_result}%.layout.top-line" from "crafts" split by ", "
+                        set {_mid-line::*} to yaml value "crafts.%{_result}%.layout.mid-line" from "crafts" split by ", "
+                        set {_bot-line::*} to yaml value "crafts.%{_result}%.layout.bot-line" from "crafts" split by ", "
+                        #Set items:
+                        delete {_craft::*}
+                        loop {_top-line::*}:
+                            add {_craft-material::%loop-value-2%} to {_craft::*}
+                        loop {_mid-line::*}:
+                            add {_craft-material::%loop-value-2%} to {_craft::*}
+                        loop {_bot-line::*}:
+                            add {_craft-material::%loop-value-2%} to {_craft::*}
+                        #Add result to database
+                        add {_result} to {skitemcreator.crafts::*}
+                        add {_craft::*} to {skitemcreator.crafts::%{_result}%::craft::*}
+                        #Permission
+                        set {_permission} to yaml value "crafts.%{_result}%.permission" from "crafts"
+                        if {_permission} is set:
+                            set {skitemcreator.crafts::%{_result}%::permission} to {_permission}
+                        register new shaped recipe for {skitemcreator.items.database::%unformatted {_result}%::final-item} using {_craft::*} with id {_result}
+
+
+    else:
+        send "&d[SkItemCreator] &cConfig file not found. Plugin can't load without it! :-(" to console
+
+#
+#Function to reorganize the lore of an item using the lore layout
+#
+function SKICLoreLayoutOrganize(i: item) :: item:
+
+    set {_lore::*} to lore of {_i}
+    set {_itemid} to string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
+    loop {_lore::*}:
+        lore of {_i} is set
+        #Get all stats lines
+        parse if script "SkRPG/Main/Addons/SkRPGItemsAddon.sk" is loaded:
+            loop {skrpg.config.database::*}:
+                set {_stat} to loop-value-2
+                if uncolored {_lore::%loop-index-1%} contains uncolored "%{skrpg.config.database::%{_stat}%::display-name}%: ":
+                    add {_lore::%loop-index-1%} to {_stats::*}
+                    remove {_lore::%loop-index-1%} from {_lore::*}
+        #Get rarity
+        if string tag "tag;SKIC-RARITY" of nbt compound of {_i} is set:
+            loop {skitemcreator.main-config::rarities::*}:
+                if {_lore::%loop-index-1%} contains formatted {skitemcreator.main-config::rarities::%loop-value-2%::display}:  
+                    add {_lore::%loop-index-1%} to {_rarity::*}
+                    remove {_lore::%loop-index-1%} from {_lore::*}
+        #Get conditions
+        if string list tag "tag;SKIC-CONDITIONS" of nbt compound of {_i} is set:
+            set {_conditions::*} to string list tag "tag;SKIC-CONDITIONS" of nbt compound of {_i}
+            loop {_conditions::*}:
+                set {_condition-display} to {skitemcreator.main-config::conditions::%loop-value-2%::display}
+                set {_condition-placeholder} to SKICReplaceConditionPlaceholders({_condition-display}, {_itemid}, loop-value-2)
+                if {_lore::%loop-index-1%} contains formatted {_condition-placeholder}:
+                    add {_lore::%loop-index-1%} to {_conditionslore::*}
+                    remove {_lore::%loop-index-1%} from {_lore::*}
+        #Get damage (fixed)
+        if {skitemcreator.items.database::%{_itemid}%::damage} is set:
+            set {_dmg-display} to {skitemcreator.main-config::damage-display}
+            replace all unformatted "{amount}" with "%{skitemcreator.items.database::%{_itemid}%::damage}%" in {_dmg-display}
+            if {_lore::%loop-index-1%} contains formatted {_dmg-display}:
+                add {_lore::%loop-index-1%} to {_dmgdisplay::*}
+                remove {_lore::%loop-index-1%} from {_lore::*}
+        #Get damage (range)
+        else if {skitemcreator.items.database::%{_itemid}%::damage::min} is set:
+            set {_dmg-display} to {skitemcreator.main-config::damage-display}
+            replace all unformatted "{amount}" with "&f%{skitemcreator.items.database::%{_itemid}%::damage::min}%&8-&f%{skitemcreator.items.database::%{_itemid}%::damage::max}%" in {_dmg-display}
+            if {_lore::%loop-index-1%} contains formatted {_dmg-display}:
+                add {_lore::%loop-index-1%} to {_dmgdisplay::*}
+                remove {_lore::%loop-index-1%} from {_lore::*}
+        #Get custom durability
+        else if {skitemcreator.items.database::%{_itemid}%::custom-durability} is set:
+            if {_lore::%loop-index-1%} is SKICDurabilityPlaceholderUpdate({_i}):
+                add {_lore::%loop-index-1%} to {_durabilitydisplay::*}
+                remove {_lore::%loop-index-1%} from {_lore::*}
+
+        #Remove blank lines
+        if {_lore::%loop-index-1%} is " ":
+            remove {_lore::%loop-index-1%} from {_lore::*}
+
+    #Set the layout
+    loop {skitemcreator.main-config::lore-layout::*}:
+        lore of {_i} is set
+        #Blank line
+        if loop-value contains "{void}":
+            add " " to {_final-lore::*}
+        #Stats
+        else if loop-value contains "{stat}":   
+            {_stats::*} is set
+            add {_stats::*} to {_final-lore::*}
+        #Text
+        else if loop-value contains "{text}":   
+            {_lore::*} is set
+            add {_lore::*} to {_final-lore::*}
+        #Rarity    
+        else if loop-value contains "{rarity}":   
+            {_rarity::*} is set
+            add {_rarity::*} to {_final-lore::*}    
+        #Conditions
+        else if loop-value contains "{conditions}":   
+            {_conditionslore::*} is set
+            add {_conditionslore::*} to {_final-lore::*}  
+        #Damage
+        else if loop-value contains "{damage}":
+            {_dmgdisplay::*} is set
+            add {_dmgdisplay::*} to {_final-lore::*} 
+        #Durability
+        else if loop-value contains "{durability}":
+            {_durabilitydisplay::*} is set
+            add {_durabilitydisplay::*} to {_final-lore::*}           
+
+    #Check lore for double blank lines
+    loop {_final-lore::*}:
+        if {_final-lore::%loop-index%} is " ":
+            set {_index} to loop-index parsed as integer
+            add 1 to {_index}
+            if {_final-lore::%{_index}%} is " ":
+                remove {_final-lore::%loop-index%} from {_final-lore::*}
+    #If last line is blank, remove it
+    if {_final-lore::%size of {_final-lore::*}%} is " ":
+        remove {_final-lore::%size of {_final-lore::*}%} from {_final-lore::*}
+
+    if {_final-lore::*} is set:
+        return {_i} with lore {_final-lore::*} 
+    else:
+        return {_i}
+
+#
+#Function to replace placeholders
+#
+function SKICReplaceConditionPlaceholders(text: string, itemid: string, condition: string) :: string:
+
+    #Replace placeholders
+    #If {stat} is set
+    replace all "{stat}" with formatted {skrpg.config.database::%{skitemcreator.items.database::%{_itemid}%::conditions::%{_condition}%::value}%::display-name} in {_text}
+    #If {stat-amount} is set
+    replace all "{stat-amount}" with "%{skitemcreator.items.database::%{_itemid}%::conditions::%{_condition}%::amount}%" in {_text}
+
+    return {_text}
+#
+#Function to check if an item condition is valid
+#
+function SKICCheckItemConditions(i: item, p: player) :: boolean:
+
+    set {_itemid} to string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
+    loop {skitemcreator.items.database::%{_itemid}%::conditions::*}:
+        #If condition is has-minimum-stat
+        #ONLY WORKS IF SKRPG AND SKRPGITEMSADDON ARE ENABLED
+        parse if script "SkRPG/Main/!Main/SkRPG.sk" is loaded:
+            parse if script "SkRPG/Main/Addons/SkRPGItemsAddon.sk" is loaded:
+                if loop-value is "has-minimum-stat":
+                    set {_stat} to {skitemcreator.items.database::%{_itemid}%::conditions::%loop-value%::value}
+                    set {_amount} to {skitemcreator.items.database::%{_itemid}%::conditions::%loop-value%::amount}
+                    set {_playerstat} to skRPGgetGlobalStatAmount({_p}, {_stat})
+                    set {_itemstat} to int tag "tag;SKRPGITEMS-%{_stat}%" of nbt compound of {_i}
+                    remove {_itemstat} from {_playerstat}
+                    if {_playerstat} >= {_amount}:
+                        return true
+                    else:
+                        send SKICReplaceConditionPlaceholders({skitemcreator.main-config::conditions::%loop-value%::message}, {_itemid}, loop-value) to {_p}
+                        play sound "ENTITY.ITEM.BREAK" with volume 0.5 and pitch 0.5 to {_p}
+                        return false
+                        stop
+        #If condition is has-permission
+        if loop-value is "has-permission":
+            set {_perm} to {skitemcreator.items.database::%{_itemid}%::conditions::%loop-value%::value}
+            if {_p} has permission {_perm}:
+                return true
+            else:
+                send SKICReplaceConditionPlaceholders({skitemcreator.main-config::conditions::%loop-value%::message}, {_itemid}, loop-value) to {_p}
+                play sound "ENTITY.ITEM.BREAK" with volume 0.5 and pitch 0.5 to {_p}
+                return false
+                stop
+
+#
+#Function to random generate an item (useful for items with stat ranges)
+#ONLY WORKS IF SKRPG AND SKRPGITEMSADDON ARE ENABLED
+#
+function SKICRandomGenerate(itemid: string) :: item:
+
+    #Check if SkRPG and SkRPGItemsAddon are loaded
+    parse if script "SkRPG/Main/!Main/SkRPG.sk" is loaded:
+        parse if script "SkRPG/Main/Addons/SkRPGItemsAddon.sk" is loaded:
+            if {skitemcreator.items.database::*} contains {_itemid}:
+                set {_item} to {skitemcreator.items.database::%{_itemid}%::final-item}
+                loop {skitemcreator.items.database::%{_itemid}%::stats::*}:
+                    #If stat result can be random
+                    if {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::min} is set: 
+                        set {_r} to random integer between {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::min} and {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::max}
+                        set {_r} to rounded {_r}
+                        set {_item} to skRPGItemsAddonSetStat({_item}, loop-value, {_r})
+                    else:
+                        set {_item} to skRPGItemsAddonSetStat({_item}, loop-value, {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::static-amount})
+                if {skitemcreator.main-config::enable-quality} is true:
+                    set {_item} to SKICCalculateQuality({_item})
+                return {_item}
+#
+#Function to re-roll stats of an item
+#ONLY WORKS IF SKRPG AND SKRPGITEMSADDON ARE ENABLED
+#
+function SKICRegenItem(i: item) :: item:
+
+    #Check if SkRPG and SkRPGItemsAddon are loaded
+    parse if script "SkRPG/Main/!Main/SkRPG.sk" is loaded:
+        parse if script "SkRPG/Main/Addons/SkRPGItemsAddon.sk" is loaded:
+            set {_itemid} to string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
+            if {skitemcreator.items.database::*} contains {_itemid}:
+                loop {skitemcreator.items.database::%{_itemid}%::stats::*}:
+                    #If stat result can be random
+                    if {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::min} is set: 
+                        set {_r} to random integer between {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::min} and {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::max}
+                        set {_r} to rounded {_r}
+                        set {_i} to skRPGItemsAddonSetStat({_i}, loop-value, {_r})
+                    else:
+                        set {_i} to skRPGItemsAddonSetStat({_i}, loop-value, {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::static-amount})
+                if {skitemcreator.main-config::enable-quality} is true:
+                    set {_i} to SKICCalculateQuality({_i})
+            return {_i}
+#
+#Function to apply quality on a item
+#
+function SKICCalculateQuality(i: item) :: item:
+
+    if {skitemcreator.main-config::enable-quality} is true:
+        set {_itemid} to string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
+        #Check if item doesn't have any random stats
+        if {skitemcreator.items.database::%{_itemid}%::has-random-stats} is not true:
+            return {_i}
+            stop
+        loop {skitemcreator.items.database::%{_itemid}%::stats::*}:
+            set {_current_stat} to int tag "tag;SKRPGITEMS-%loop-value%" of nbt compound of {_i}
+            add {_current_stat} to {_currentcount}
+            add {skitemcreator.items.database::%{_itemid}%::stats::%loop-value%::max} to {_maxcount}
+            set {_result} to ({_currentcount}/{_maxcount})*100
+
+        #Format result
+        if {_result} is between 0 and 15:
+            set {_result-display} to "<##560101>%{_result}%"
+        else if {_result} is between 15 and 30:
+            set {_result-display} to "<##a74602>%{_result}%"
+        else if {_result} is between 30 and 45:
+            set {_result-display} to "<##d4b502>%{_result}%"
+        else if {_result} is between 45 and 60:
+            set {_result-display} to "<##448301>%{_result}%"
+        else if {_result} is between 60 and 75:
+            set {_result-display} to "<##79e802>%{_result}%"
+        else if {_result} is between 75 and 90:
+            set {_result-display} to "<##12fd9f>%{_result}%"
+        else if {_result} > 90:
+            set {_result-display} to "<##58fdbb>%{_result}%"
+
+        set {_quality-display} to {skitemcreator.main-config::quality-display}
+        if float tag "tag;SKIC-QUALITY" of nbt compound of {_i} is set:
+            set {_current_quality} to float tag "tag;SKIC-QUALITY" of nbt compound of {_i}
+            set {_lore::*} to lore of {_i}
+            set {_old_quality_display} to {_quality-display}
+            replace all "{percent}" with "%{_current_quality}%" in {_old_quality_display}
+            replace all "{percent}" with formatted {_result-display} in {_quality-display}
+            loop {_lore::*}:
+                if unformatted {_lore::%loop-index%} contains unformatted {_old_quality_display}:
+                    set {_lore::%loop-index%} to formatted {_quality-display}
+            set {_i} to {_i} with lore {_lore::*}
+            set float tag "tag;SKIC-QUALITY" of nbt compound of {_i} to {_result}
+        else:
+            replace all "{percent}" with formatted {_result-display} in {_quality-display}
+            add "" and formatted {_quality-display} to lore of {_i}
+            set float tag "tag;SKIC-QUALITY" of nbt compound of {_i} to {_result}
+    return {_i}
+#
+#Function to register an item manually
+#
+function SKICRegisterItemManually(i: item, name: string):
+
+    if {skitemcreator.items.database::*} does not contain {_name}:
+        add {_name} to {skitemcreator.items.database::*}
+        set {skitemcreator.items.database::%{_name}%::final-item} to {_i}       
+#
+#Function to return the internal name of an item
+#
+function SKICInternalNameOfItem(i: item) :: string:
+
+    return string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
+#
+#Function for pagination (GUI)
+#
+function SKICPagination(page: number, elementsPerPage: number, objects: objects) :: objects:
+    set {_page} to floor({_page})-1
+    set {_elementsPerPage} to floor({_elementsPerPage})
+
+    set {_start} to {_page} * {_elementsPerPage}
+    set {_end} to {_start}+{_elementsPerPage}
+    loop integers from {_start}+1 to {_end}:
+        add (loop-value)th element of {_objects::*} to {_objs::*}
+    return {_objs::*}
+#
+#Function to open GUI
+#
+function SKICOpenGUI(p: player, menu: string, page: integer):
+
+    if {_menu} is "ALL":
+
+        set metadata tag "SKIC-SEARCH-PAGE" of {_p} to "%{_page}%"
+        set metadata tag "SKIC-SEARCH-MENU" of {_p} to {_menu}
+
+        open chest inventory with 6 rows named "&8SkItemsCreator - Search" to  {_p}
+        set {_objects::*} to SKICPagination({_page}, 45, {skitemcreator.items.database::*})
+
+        set {_slot} to 0
+        loop {_objects::*}:
+            set slot {_slot} of {_p}'s current inventory to {skitemcreator.items.database::%loop-value%::final-item}
+            add 1 to {_slot}
+
+        set {_slot} to 45
+        loop 9 times:
+            set slot {_slot} of {_p}'s current inventory to black stained glass pane named " "
+            add 1 to {_slot}
+
+        if {_page} > 1:
+            set slot 45 of {_p}'s current inventory to arrow named "&aPrevious page"
+        if size of {skitemcreator.items.database::*} > size of {_objects::*}:
+            set slot 53 of {_p}'s current inventory to arrow named "&aNext page"
+#
+#Inventory click in search gui
+#
+on inventory click:
+    name of player's current inventory is "&8SkItemsCreator - Search"
+    cancel event
+    if clicked slot is between 0 and 44:
+        give clicked slot to player
+        stop
+    else:
+        if name of clicked slot is "&aPrevious page":
+            set {_page} to metadata tag "SKIC-SEARCH-PAGE" of player parsed as integer
+            remove 1 from {_page}
+            set {_menu} to metadata tag "SKIC-SEARCH-MENU" of player
+
+            SKICOpenGUI(player, {_menu}, {_page})
+        else if name of clicked slot is "&aNext page":
+            set {_page} to metadata tag "SKIC-SEARCH-PAGE" of player parsed as integer
+            add 1 to {_page}
+            set {_menu} to metadata tag "SKIC-SEARCH-MENU" of player
+
+            SKICOpenGUI(player, {_menu}, {_page})
+
+#
+#Custom damage
+#
+on damage:
+    tool of attacker is set
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of attacker is set
+    set {_internal} to string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of attacker
+    if {skitemcreator.items.database::%{_internal}%::damage::max} is set:
+        set {_rdmg} to random integer between {skitemcreator.items.database::%{_internal}%::damage::min} and {skitemcreator.items.database::%{_internal}%::damage::max}
+        add {_rdmg} to damage
+    else:
+        add {skitemcreator.items.database::%{_internal}%::damage} to damage
+
+#
+#Cancel using items if not all conditions are true
+#
+on tool change:
+    if string list tag "tag;SKIC-CONDITIONS" of nbt compound of event-item is set:
+        set {_cd} to difference between {skitemcreator.player.click_cooldown::%uuid of player%} and now
+        if {_cd} is less than 0.5 seconds:
+            cancel event
+            stop
+        set {_conditions_checked} to SKICCheckItemConditions(event-item, player)
+        if {_conditions_checked} is false:
+            set {skitemcreator.player.click_cooldown::%uuid of player%} to now
+            cancel event
+on click:
+    if string list tag "tag;SKIC-CONDITIONS" of nbt compound of tool of player is set:
+        set {_cd} to difference between {skitemcreator.player.click_cooldown::%uuid of player%} and now
+        if {_cd} is less than 0.5 seconds:
+            cancel event
+            stop
+        set {_t} to tool of player
+        set {_conditions_checked} to SKICCheckItemConditions({_t}, player)
+        if {_conditions_checked} is false:
+            set {skitemcreator.player.click_cooldown::%uuid of player%} to now
+            cancel event
+on damage of living entity:
+    attacker is a player
+    if string list tag "tag;SKIC-CONDITIONS" of nbt compound of tool of attacker is set:
+        set {_cd} to difference between {skitemcreator.player.click_cooldown::%uuid of attacker%} and now
+        if {_cd} is less than 0.5 seconds:
+            cancel event
+            stop
+        set {_t} to tool of attacker
+        set {_conditions_checked} to SKICCheckItemConditions({_t}, attacker)
+        if {_conditions_checked} is false:
+            set {skitemcreator.player.click_cooldown::%uuid of attacker%} to now
+            cancel event
+#Armor equip
+on inventory click:
+    clicked inventory is player's inventory
+    index of clicked slot is 40 or 39 or 38 or 37 or 36
+    set {_c} to cursor slot of player
+    if string list tag "tag;SKIC-CONDITIONS" of nbt compound of {_c} is set:
+        set {_cd} to difference between {skitemcreator.player.click_cooldown::%uuid of player%} and now
+        if {_cd} is less than 0.5 seconds:
+            cancel event
+            stop
+        set {_conditions_checked} to SKICCheckItemConditions({_c}, player)
+        if {_conditions_checked} is false:
+            set {skitemcreator.player.click_cooldown::%uuid of player%} to now
+            cancel event
+#
+#CAST SPELLS
+#ONLY WORKS IF MYTHICMOBS IS ENABLED
+#MANA WORKS ONLY IF SKRPG IS ENABLED
+#
+function SKICCastItemSpell(p: player, i: item, action: string):
+    parse if plugin "MythicMobs" is enabled:
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i} is set
+        set {_itemid} to string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
+        if {skitemcreator.items.database::%{_itemid}%::mythic-skills::*} is set:
+            loop {skitemcreator.items.database::%{_itemid}%::mythic-skills::*}:
+                set {_skill} to loop-value
+                if {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::event} = {_action}:
+                    #Check cooldown
+                    if {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::cooldown} is set:
+                        set {_timespan} to "%{skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::cooldown}%" parsed as timespan
+                        set {_cd} to difference between {skitemcreator.players.database::%uuid of {_p}%} and now
+                        if {_cd} is less than {_timespan}:
+                            set {_msg} to {skitemcreator.main-config::cooldown-message}
+                            replace all "{cd}" with "%difference between {_cd} and {_timespan}%" in {_msg}
+                            send formatted {_msg} to {_p}
+                            stop
+                        set {skitemcreator.players.database::%uuid of {_p}%} to now
+                    #Check mana cost if SkRPG is enabled
+                    parse if script "SkRPG/Main/!Main/SkRPG.sk" is loaded:
+                        if {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::mana-cost} is set:
+                            if skRPGgetGlobalStatAmount({_p}, "mana") < {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::mana-cost}:
+                                send formatted {skitemcreator.main-config::not-enough-mana} to {_p}
+                                stop
+                            else:
+                                skRPGRemoveStatAmount({_p}, "mana", {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::mana-cost}, "permanent", true)
+                    parse if plugin "MythicMobs" is enabled:
+                        set {_mmAPI} to instance of plugin "MythicMobs"
+                        set {_mythic.bukkitapihelper} to class "io.lumine.mythic.bukkit.BukkitAPIHelper"
+                        set {_mythic.skilltrigger} to class "io.lumine.mythic.api.skills.SkillTrigger"
+                        set {_mythic.skillcaster} to class "io.lumine.mythic.api.skills.SkillCaster"
+                        set {_mmHelper} to new {_mythic.bukkitapihelper}()
+                        set {_mmInstance} to {_mmAPI}.getAPIHelper().getMythicMobInstance({_p})
+                        if {_mmInstance} is not null:
+                            {_mmHelper}.castSkill({_p}, {_skill})
+
+on right click:
+    parse if plugin "MythicMobs" is enabled:
+        tool of player is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+        SKICCastItemSpell(player, tool of player, "RIGHT_CLICK")
+on left click:
+    parse if plugin "MythicMobs" is enabled:
+        tool of player is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+        SKICCastItemSpell(player, tool of player, "LEFT_CLICK")
+on death:
+    parse if plugin "MythicMobs" is enabled:
+        tool of victim is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of victim is set
+        SKICCastItemSpell(victim, tool of victim, "DEATH")
+on death:
+    parse if plugin "MythicMobs" is enabled:
+        tool of attacker is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of attacker is set
+        SKICCastItemSpell(attacker, tool of attacker, "KILL")
+on damage:
+    parse if plugin "MythicMobs" is enabled:
+        tool of attacker is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of attacker is set
+        SKICCastItemSpell(attacker, tool of attacker, "DAMAGE")
+on drop:
+    parse if plugin "MythicMobs" is enabled:
+        tool of player is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+        SKICCastItemSpell(player, tool of player, "DROP")
+on player tool break:
+    parse if plugin "MythicMobs" is enabled:
+        tool of player is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+        SKICCastItemSpell(player, tool of player, "ITEM_BREAK")
+on place:
+    parse if plugin "MythicMobs" is enabled:
+        tool of player is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+        SKICCastItemSpell(player, tool of player, "PLACE")  
+#
+#SKRIPT EFFECTS (EVENT)
+#
+function SKICParseSkriptEffect(p: player, i: item, action: string) :: boolean:
+
+    set {_internal} to string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
+    if {skitemcreator.items.database::%{_internal}%::skript-effects::*} is set:
+        loop {skitemcreator.items.database::%{_internal}%::skript-effects::*}:
+            set {_ske} to loop-value
+            if {skitemcreator.items.database::%{_internal}%::skript-effects::%{_ske}%::event} = {_action}:
+                loop {skitemcreator.items.database::%{_internal}%::skript-effects::%{_ske}%::effects::*}:
+                    if loop-value-2 is "cancel event":
+                        set {_cancel} to true
+                    else:
+                        parse effect loop-value-2 from {_p}
+    return {_cancel}
+
+
+on break:
+    event is not cancelled
+    tool of player is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    set {_cancel} to SKICParseSkriptEffect(player, tool of player, "BREAK_BLOCK")
+    if {_cancel} is true:
+        cancel event
+on drop:
+    event is not cancelled
+    tool of player is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    set {_cancel} to SKICParseSkriptEffect(player, tool of player, "DROP")
+    if {_cancel} is true:
+        cancel event
+on player tool break:
+    event is not cancelled
+    tool of player is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    SKICParseSkriptEffect(player, tool of player, "ITEM_BREAK")
+on right click:
+    event is not cancelled
+    tool of player is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    set {_cancel} to SKICParseSkriptEffect(player, tool of player, "RIGHT_CLICK")
+    if {_cancel} is true:
+        cancel event
+on left click:
+    event is not cancelled
+    tool of player is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    set {_cancel} to SKICParseSkriptEffect(player, tool of player, "LEFT_CLICK")
+    if {_cancel} is true:
+        cancel event
+on place:
+    event is not cancelled
+    tool of player is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    set {_cancel} to SKICParseSkriptEffect(player, tool of player, "PLACE")
+    if {_cancel} is true:
+        cancel event
+on damage:
+    event is not cancelled
+    attacker is set
+    tool of attacker is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of attacker is set
+    set {_cancel} to SKICParseSkriptEffect(attacker, tool of attacker, "DAMAGE")
+    if {_cancel} is true:
+        cancel event
+on death:
+    event is not cancelled
+    attacker is set
+    tool of attacker is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of attacker is set
+    set {_cancel} to SKICParseSkriptEffect(attacker, tool of attacker, "KILL")
+    if {_cancel} is true:
+        cancel event
+
+# 
+#COMMANDS
+#
+command /skitemcreator <string> [<text>]:
+    aliases: skic, ski
+    permission: skitemcreator.admin
+    trigger:
+        if arg 1 is "get":
+            if arg 2 is set:
+                if {skitemcreator.items.database::*} contains arg 2:
+                    give {skitemcreator.items.database::%arg 2%::final-item} to player
+                    send "&d[SkItemCreator] &eYou have successfully received &a%arg 2%"
+                else:
+                    send "&d[SkItemCreator] &cItem %arg 2% does not exists."
+        if arg 1 is "randomgen":
+            if arg 2 is set:
+                if {skitemcreator.items.database::*} contains arg 2:
+                    give SKICRandomGenerate(arg 2) to player
+                    send "&d[SkItemCreator] &eYou have successfully received &a%arg 2%"
+                else:
+                    send "&d[SkItemCreator] &cItem %arg 2% does not exists."
+        if arg 1 is "reroll":
+            if tool of player is air:
+                send "&d[SkItemCreator] &cYou can't reroll air !"
+                stop
+            set tool of player to SKICRegenItem(tool of player)
+            send "&d[SkItemCreator] &eYour item was re-rolled succesfully!"
+        if arg 1 is "reload":
+            if arg 2 is set:
+                SKICLoadConfig(arg 2)
+                send "&d[SkItemCreator] &eReloaded &a%arg 2% &esuccesfully!"
+            else:
+                SKICLoadConfig("ALL")
+                send "&d[SkItemCreator] &eReloaded all files succesfully!"
+        if arg 1 is "gui":
+            SKICOpenGUI(player, "ALL", 1)
+
+on tab complete of "/skitemcreator" or "/ski" or "/skic":
+    set tab completions for position 1 to "get" and "randomgen" and "reroll" and "reload" and "gui"
+    if tab arg-1 is "get" or "randomgen" or "reload":
+        set tab completions for position 2 to {skitemcreator.items.database::*}
+
+#
+#ARMOR SETS
+#
+on armor change:
+    wait 1 tick
+    set {_cooldown} to difference between {skitemcreator.player.armor-set-cooldown::%uuid of player%} and now
+    if {_cooldown} is less than 3 ticks:
+        stop
+    set {skitemcreator.player.armor-set-cooldown::%uuid of player%} to now
+    delete metadata tag "SKIC-CURRENT-ARMOR-SET" of player
+    add helmet of player to {_check::*}
+    add chestplate of player to {_check::*}
+    add leggings of player to {_check::*}
+    add boots of player to {_check::*}
+    loop {_check::*}:
+        if string tag "tag;SKIC-ARMOR-SET" of nbt compound of loop-value is set:
+            set {_set} to string tag "tag;SKIC-ARMOR-SET" of nbt compound of loop-value
+            if {_size::*} does not contain {_set}:
+                add {_set} to {_size::*}
+            add 1 to {_size::%{_set}%}
+    loop {_size::*}:
+        if {_size::%loop-value%} = {skitemcreator.armor-sets::%{_set}%::size}:
+            set metadata tag "SKIC-CURRENT-ARMOR-SET" of player to {_set}
+            set {_final_set} to {_set}
+            send "&eArmor set activated !"
+            stop loop
+    #Execute code
+    #Armor-equip
+    if {skitemcreator.armor-sets::%{_final_set}%::trigger::on-equip::execute::*} is set:
+        SKICExecuteArmorSetEffect(player, {_final_set}, "on-equip")
+    #Every second
+    if {skitemcreator.armor-sets::%{_final_set}%::trigger::every-second::execute::*} is set:
+        while metadata tag "SKIC-CURRENT-ARMOR-SET" of player is {_final_set}:
+            SKICExecuteArmorSetEffect(player, {_final_set}, "every-second")
+
+on damage of player:
+    #On damage
+    if metadata tag "SKIC-CURRENT-ARMOR-SET" of victim is set:
+        set {_set} to metadata tag "SKIC-CURRENT-ARMOR-SET" of victim
+        if {skitemcreator.armor-sets::%{_set}%::trigger::on-damaged::execute::*} is set: 
+            SKICExecuteArmorSetEffect(victim, {_set}, "on-damaged")      
+on death of player:
+    #On death
+    if metadata tag "SKIC-CURRENT-ARMOR-SET" of victim is set:
+        set {_set} to metadata tag "SKIC-CURRENT-ARMOR-SET" of victim
+        if {skitemcreator.armor-sets::%{_set}%::trigger::on-death::execute::*} is set: 
+            SKICExecuteArmorSetEffect(victim, {_set}, "on-death")  
+on death:
+    attacker is a player
+    #On kill
+    if metadata tag "SKIC-CURRENT-ARMOR-SET" of attacker is set:
+        set {_set} to metadata tag "SKIC-CURRENT-ARMOR-SET" of attacker
+        if {skitemcreator.armor-sets::%{_set}%::trigger::on-kill::execute::*} is set: 
+            SKICExecuteArmorSetEffect(attacker, {_set}, "on-kill")  
+#
+#ONLY WORKS IF MYTHICMOBS IS ENABLED
+#
+function SKICExecuteArmorSetEffect(p: player, set: string, event: string):
+
+    if {skitemcreator.armor-sets::%{_set}%::trigger::%{_event}%::execute::*} is set:
+        parse effect {skitemcreator.armor-sets::%{_set}%::trigger::%{_event}%::execute::*} from {_p}
+    if {skitemcreator.armor-sets::%{_set}%::trigger::%{_event}%::mythic-skills::*} is set:
+        parse if plugin "MythicMobs" is enabled:
+            set {_mmAPI} to instance of plugin "MythicMobs"
+            set {_mythic.bukkitapihelper} to class "io.lumine.mythic.bukkit.BukkitAPIHelper"
+            set {_mythic.skilltrigger} to class "io.lumine.mythic.api.skills.SkillTrigger"
+            set {_mythic.skillcaster} to class "io.lumine.mythic.api.skills.SkillCaster"
+            set {_mmHelper} to new {_mythic.bukkitapihelper}()
+            set {_mmInstance} to {_mmAPI}.getAPIHelper().getMythicMobInstance({_p})
+            loop {skitemcreator.armor-sets::%{_set}%::trigger::%{_event}%::mythic-skills::*}:
+                if {_mmInstance} is not null:
+                    {_mmHelper}.castSkill({_p}, loop-value)
+
+#
+#FUNCTION TO RETURN THE DURABILITY LINE FROM AN ITEM
+#
+function SKICDurabilityPlaceholderUpdate(item: item) :: string:
+
+    set {_current-durability} to int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item}
+    set {_max-durability} to int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item}
+    set {_durability-display} to {skitemcreator.main-config::custom-durability-display}
+
+    replace all "{min}" with "%{_current-durability}%" in {_durability-display}
+    replace all "{max}" with "%{_max-durability}%" in {_durability-display}
+    replace "{percent}" with "%({_current-durability}/{_max-durability})*100%%%" in {_durability-display}
+
+    return {_durability-display} 
+
+#
+#FUNCTION TO UPDATE CUSTOM DURABILITY
+#Returns the updated item
+#
+function SKICDurabilityUpdateItem(item: item) :: item:
+
+    if int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item} > 0:
+
+        repair {_item}
+        set {_current-durability} to int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item}
+        set {_max-durability} to int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item}
+
+        set {_current-vanilla-durability} to durability of {_item}
+        set {_current-vanilla-max-durability} to max durability of {_item}
+
+        set {_current-percent} to {_current-durability}/{_max-durability}
+
+        if {_current-percent} < 1:
+            set durability of {_item} to rounded {_current-vanilla-max-durability}*{_current-percent}
+        else if {_current-percent} <= 0:
+            set {_item} to air
+    
+    return {_item}
+
+#
+#FUNCTION TO DAMAGE CUSTOM DURABILITY OF AN ITEM
+#Returns the damaged item
+#
+function SKICDurabilityRemove(item: item, amount: integer) :: item:
+
+    if int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item} > 0:
+        set {_current-durability} to int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item}
+        set {_max-durability} to int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item}
+        set {_lore::*} to lore of {_item}
+        set {_getindex} to 1
+        loop {_lore::*}:
+            if {_lore::%loop-index%} is SKICDurabilityPlaceholderUpdate({_item}):
+                stop loop
+            add 1 to {_getindex}
+        remove {_amount} from {_current-durability}
+        if {_current-durability} <= 0:
+            return air
+            stop
+        set int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item} to {_current-durability}
+        loop {_lore::*}:
+            set {_index} to loop-index parsed as integer
+            if {_index} = {_getindex}:
+                set {_lore::%loop-index%} to SKICDurabilityPlaceholderUpdate({_item})
+        set lore of {_item} to {_lore::*}
+        set {_item} to SKICDurabilityUpdateItem({_item})
+        return {_item}
+    else:
+        return {_item}
+#
+#FUNCTION TO ADD DURABILITY TO AN ITEM
+#Returns the repaired item
+#
+function SKICDurabilityAdd(item: item, amount: integer) :: item:
+
+    if int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item} > 0:
+        set {_current-durability} to int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item}
+        set {_max-durability} to int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item}
+        set {_lore::*} to lore of {_item}
+        set {_getindex} to 1
+        loop {_lore::*}:
+            if {_lore::%loop-index%} is SKICDurabilityPlaceholderUpdate({_item}):
+                stop loop
+            add 1 to {_getindex}
+        add {_amount} to {_current-durability}
+        if {_current-durability} > {_max-durability}:
+            set {_current-durability} to {_max-durability}
+        set int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item} to {_current-durability}
+        loop {_lore::*}:
+            set {_index} to loop-index parsed as integer
+            if {_index} = {_getindex}:
+                set {_lore::%loop-index%} to SKICDurabilityPlaceholderUpdate({_item})
+        set lore of {_item} to {_lore::*}
+        set {_item} to SKICDurabilityUpdateItem({_item})
+        return {_item}
+    else:
+        return {_item}
+#
+#FUNCTION TO FULLY REPAIR AN ITEM WITH CUSTOM DURABILITY
+#Returns the repaired item
+#
+function SKICDurabilityFullRepair(item: item) :: item:
+
+    if int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item} > 0:
+        set {_current-durability} to int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item}
+        set {_max-durability} to int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item}
+        set {_lore::*} to lore of {_item}
+        set {_getindex} to 1
+        loop {_lore::*}:
+            if {_lore::%loop-index%} is SKICDurabilityPlaceholderUpdate({_item}):
+                stop loop
+            add 1 to {_getindex}
+        set {_current-durability} to {_max-durability}
+        set int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item} to {_current-durability}
+        loop {_lore::*}:
+            set {_index} to loop-index parsed as integer
+            if {_index} = {_getindex}:
+                set {_lore::%loop-index%} to SKICDurabilityPlaceholderUpdate({_item})
+        set lore of {_item} to {_lore::*}
+        set {_item} to SKICDurabilityUpdateItem({_item})
+        return {_item}
+    else:
+        return {_item}
+#
+#FUNCTION TO SET THE DURABILITY OF AN ITEM
+#Returns the item
+#
+function SKICDurabilitySet(item: item, amount: integer) :: item:
+
+    if int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item} > 0:
+        set {_current-durability} to int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item}
+        set {_max-durability} to int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item}
+        set {_lore::*} to lore of {_item}
+        set {_getindex} to 1
+        loop {_lore::*}:
+            if {_lore::%loop-index%} is SKICDurabilityPlaceholderUpdate({_item}):
+                stop loop
+            add 1 to {_getindex}
+        set {_current-durability} to {_amount}
+        if {_current-durability} > {_max-durability}:
+            set {_current-durability} to {_max-durability}
+        if {_current-durability} <= 0:
+            return air
+            stop
+        set int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item} to {_current-durability}
+        loop {_lore::*}:
+            set {_index} to loop-index parsed as integer
+            if {_index} = {_getindex}:
+                set {_lore::%loop-index%} to SKICDurabilityPlaceholderUpdate({_item})
+        set lore of {_item} to {_lore::*}
+        set {_item} to SKICDurabilityUpdateItem({_item})
+        return {_item}
+    else:
+        return {_item}
+#
+#EVENTS FOR DAMAGING CUSTOM DURABILITY
+#
+on break:
+    if SKICInternalNameOfItem(tool of player) is set:
+        set {_internal} to SKICInternalNameOfItem(tool of player)
+        if {skitemcreator.items.database::%{_internal}%::custom-durability} > 0:
+            if {skitemcreator.items.database::%{_internal}%::damage-durability-events::*} contains "BREAK":
+                set tool of player to SKICDurabilityRemove(tool of player, 1)
+on damage:
+    attacker is a player
+    if SKICInternalNameOfItem(tool of attacker) is set:
+        set {_internal} to SKICInternalNameOfItem(tool of attacker)
+        if {skitemcreator.items.database::%{_internal}%::custom-durability} > 0:
+            if {skitemcreator.items.database::%{_internal}%::damage-durability-events::*} contains "DAMAGE":
+                set tool of attacker to SKICDurabilityRemove(tool of attacker, 1)

@@ -1,0 +1,26 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: LEATHER_HELMET
+
+#Display name
+name: "&dCosmetic &ehelmet"
+
+#Color
+dye: 251,55,251
+
+#Trim
+trim:
+  material: gold
+  pattern: silence
+
+#Lore. (Optional)
+lore:
+  - "&7&oA very &e&obeautiful"
+  - "&7&ohelmet!"
+
+#Rarity
+rarity: common

@@ -1,0 +1,49 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: DIAMOND_PICKAXE
+
+#Display name
+name: "&dUltra pickaxe"
+
+#Lore. (Optional)
+lore:
+  - "&7This pickaxe grants the Haste" 
+  - "&7effect after breaking a block"
+
+#Add enchants here
+#<enchant>:<level>
+enchants:
+  - EFFICIENCY:5
+
+#The rarity of the item. You can configure all rarities and create your own in config.yml.
+rarity: mythic
+
+#Skript effects
+#Allows executing Skript code
+#
+#See all events on the wiki
+skript-effects:
+  cooleffect1:
+    #All events: BREAK_BLOCK, DROP, ITEM_BREAK, RIGHT_CLICK, LEFT_CLICK, PLACE, KILL, DAMAGE
+    event: BREAK_BLOCK
+    #You can cancel events with 'cancel event' line (Does not work if event is not cancellable)
+    effects:
+      #- cancel event
+      - apply haste 2 to player for 5 seconds replacing the existing effect
+      - broadcast "&a%player% has a very good pickaxe ! :)"
+
+#Custom durability
+custom-durability: 100
+
+#List of events when the item should be damaged (List of events: BREAK, DAMAGE)
+#If damage-durability-events is not specified, BREAK and DAMAGE are defaults
+#
+#If you want to use your own events, use the functions SKICDurabilityRemove(item, amount) in your code
+#The function returns the damaged item. 
+damage-durability-events:
+  - BREAK
+  - DAMAGE

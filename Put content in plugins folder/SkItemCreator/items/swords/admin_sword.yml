@@ -1,0 +1,47 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: NETHERITE_SWORD
+
+#Display name
+name: "&c&lADMIN SWORD"
+
+#Custom damage
+#This will override the vanilla damage attribute, unless you define it in 'attributes' section
+damage: 300~950
+
+#Lore. (Optional)
+lore:
+  - "&7&oOnly usable by players with"
+  - "&7&opermission &c&orank.admin"
+
+#Attributes. (Optional)
+#Define your attributes as follows: <attribute>:<value>
+attributes:
+  - generic.attack_damage:150
+
+#Stats of item
+#Requires SkRPG and SkRPGItemsAddon installed.
+#Define your stats as follows: <stat>:<value>
+#You can define a range for the stat value as followes: <stat>:<min>~<max>
+#
+#The item will be registered with the highest value, but if you generate the item with the script's API or command, 
+#its value will be random between the minimum and maximum.
+stats:
+  - strength:100
+  - defense:100
+  - speed:100
+  - wisdom:100
+  - vitality:100
+
+#Conditons to use the item
+#All conditions can be configured in config.yml.
+conditions:
+  has-permission:
+    value: rank.admin
+
+#The rarity of the item. You can configure all rarities and create your own in config.yml.
+rarity: unique

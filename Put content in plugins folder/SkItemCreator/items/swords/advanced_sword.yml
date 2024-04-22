@@ -1,0 +1,20 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type
+type: DIAMOND_SWORD
+
+#Display name
+name: "&cAdvanced sword"
+
+#Lore
+lore:
+  - ""
+  - "&fA sword enchanted with enchantments"
+  - "&ffrom &dAdvanced Enchantments"
+
+#Enchantments from AdvancedEnchantments
+advanced-enchants:
+  - "enderslayer:5"

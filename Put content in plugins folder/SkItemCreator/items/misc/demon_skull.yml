@@ -1,0 +1,36 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: PLAYER_HEAD
+
+#Display name
+name: "&cDemon skull"
+
+#Skull skin
+skull-skin: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvM2VmMGZjMTk5ZmVkMjNiMDdjZjFhMGVmYWRmNTY0N2UwNGQxNzVjNWQ3ZjMxNjdjNjhkZDBhNmJkNjIzMDdiMCJ9fX0=
+
+#Stats of item
+#Requires SkRPG and SkRPGItemsAddon installed.
+#Define your stats as follows: <stat>:<value>
+#You can define a range for the stat value as followes: <stat>:<min>~<max>
+#
+#The item will be registered with the highest value, but if you generate the item with the script's API or command, 
+#its value will be random between the minimum and maximum.
+stats:
+  - defense:5~19
+  - lifesteal:9~14
+  - vitality:6~18
+
+#Lore. (Optional)
+lore:
+  - "&7&oA demon head that can possess"
+  - "&7&oits wearer"
+
+#Rarity
+rarity: legendary
+
+#Indicate that the head should be considered a helmet
+head-is-helmet: true

@@ -1,0 +1,33 @@
+armor-sets:
+  hunter:
+    #All items of the armor set
+    items:
+      helmet: hunter_helmet
+      chestplate: hunter_chestplate
+      leggings: hunter_leggings
+      boots: hunter_boots
+    #This section executes Skript code. Everything is optional here!
+    trigger:
+      #Code executed every second while armor set is equipped.
+      every-second:
+        execute:
+          #Example: Applies Speed 2 while the full armor is equiped 
+          - make 4 of flame at location of player with offset vector(1, 1, 1) with extra 0
+          - apply speed 2 to player for 2 seconds replacing the existing effect
+        #Can execute mythicmobs skills
+        #Example: This will cast 'exampleSkill'
+        mythic-skills:
+          - exampleSkill
+      #Code executed when armor set is equipped (executed once)
+      #Example: This will broadcast a message when equiped
+      on-equip:
+        execute:
+          - broadcast "&a%player% &ehas equipped the &aHunter &earmor set!"
+      #Code executed when you kill a mob
+      #Example: Broadcasts a message on each kill
+      on-kill:
+        execute:
+          - broadcast "&c&lKILL !"
+      #
+      #See other events on GitHub
+      #

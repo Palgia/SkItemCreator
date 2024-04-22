@@ -1,0 +1,23 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: BOW
+
+#Display name
+name: "&dEnchanted bow"
+
+#Lore. (Optional)
+lore:
+  - "&7&oA bow with a forbidden"
+  - "&7&oenchantment..."
+
+#Add enchants here
+#<enchant>:<level>
+enchants:
+  - POWER:6
+
+#The rarity of the item. You can configure all rarities and create your own in config.yml.
+rarity: mythic

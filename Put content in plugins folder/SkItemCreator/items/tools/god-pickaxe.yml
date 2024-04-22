@@ -1,0 +1,24 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: NETHERITE_PICKAXE
+
+#Display name
+name: "&c&lGOD PICKAXE"
+
+#Lore. (Optional)
+lore:
+  - ""
+  - "&7Forged from gods." 
+
+#Add enchants here
+#<enchant>:<level>
+enchants:
+  - EFFICIENCY:10
+  - UNBREAKING:10
+
+#The rarity of the item. You can configure all rarities and create your own in config.yml.
+rarity: unique

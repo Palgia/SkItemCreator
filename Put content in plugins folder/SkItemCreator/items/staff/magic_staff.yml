@@ -1,0 +1,30 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: BLAZE_ROD
+
+#Display name
+name: "&bMagic &dstaff"
+
+#Lore. (Optional)
+lore:
+  - "&7&oA scepter brimming with magic!"
+  - ""
+  - "&3❥ &bVery cool spell &e&lRIGHT-CLICK"
+  - "     &8Casts a MythicMobs spell"
+  - "     &7Mana cost: &330"
+
+#The rarity of the item. You can configure all rarities and create your own in config.yml.
+rarity: rare
+
+#You can configure some MythicMobs spells that can be used with the item, as well as a mana cost.
+mythic-skills:
+  #Casts the spell verycoolspell on righ-click.
+  CoolSkill:
+    mana-cost: 30
+    cooldown: 12 seconds
+    #All events: BREAK_BLOCK, DROP, ITEM_BREAK, RIGHT_CLICK, LEFT_CLICK, PLACE, KILL, DAMAGE
+    event: RIGHT_CLICK

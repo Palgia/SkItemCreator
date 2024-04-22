@@ -1,0 +1,17 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#If you have ItemsAdder enabled, you can use itemsadder-type instead of type to get an item from ItemsAdder.
+#Write <namespace>:<name>.
+#This is an item from the default pack.
+itemsadder-type: "iasurvival:ruby"
+
+#Display name
+name: "&cCool ruby"
+
+#Lore
+lore:
+  - "&fA very cool ruby from"
+  - "&fthe plugin &dItemsAdder"

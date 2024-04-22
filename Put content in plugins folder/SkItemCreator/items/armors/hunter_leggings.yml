@@ -1,0 +1,32 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: LEATHER_LEGGINGS
+
+#Display name
+name: "&aHunter leggings"
+
+#Stats of item
+#Requires SkRPG and SkRPGItemsAddon installed.
+#Define your stats as follows: <stat>:<value>
+#You can define a range for the stat value as followes: <stat>:<min>~<max>
+#
+#The item will be registered with the highest value, but if you generate the item with the script's API or command, 
+#its value will be random between the minimum and maximum.
+stats:
+  - defense:5~14
+  - health:5~11
+  - vitality:5~9
+
+#Lore. (Optional)
+lore:
+  - "&7&oA piece of armor perfect"
+  - "&7&ofor hunters"
+  - ""
+  - "&eArmor set piece: &aHunter"
+
+#Rarity
+rarity: common

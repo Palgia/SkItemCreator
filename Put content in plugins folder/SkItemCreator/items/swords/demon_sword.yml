@@ -1,0 +1,58 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: DIAMOND_SWORD
+
+#Display name
+name: "&cDemon sword"
+
+#Custom model. (Optional)
+custom-model: 23
+
+#Lore. (Optional)
+lore:
+  - "&7&oAn overpowering sword that"
+  - "&7&oonly demons can wield"
+
+#Attributes. (Optional)
+#Define your attributes as follows: <attribute>:<value>
+attributes:
+  - generic.attack_damage:10
+
+#Custom NBT Tags. (Optional)
+#Can be string or integer.
+#Define your tags as follows: <tag>:<value>
+custom-tags:
+  - mytag:10
+  - myanothertag:YAY
+
+#Stats of item
+#Requires SkRPG and SkRPGItemsAddon installed.
+#Define your stats as follows: <stat>:<value>
+#You can define a range for the stat value as followes: <stat>:<min>~<max>
+#
+#The item will be registered with the highest value, but if you generate the item with the script's API or command, 
+#its value will be random between the minimum and maximum.
+stats:
+  - strength:10~20
+  - speed:8
+  - wisdom:-10
+
+#Set item flags of your item
+#List: https://skripthub.net/docs/?id=10829
+item-flags:
+  - hide enchants
+
+#The rarity of the item. You can configure all rarities and create your own in config.yml.
+rarity: legendary
+
+#Conditons to use the item
+#All conditions can be configured in config.yml.
+conditions:
+  #Player needs to have 5 Strength at minimal to use this sword
+  has-minimum-stat:
+    value: strength
+    amount: 5
