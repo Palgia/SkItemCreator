@@ -1,0 +1,38 @@
+#Minecraft type of item
+type: BOOK
+
+#Display name
+name: "&e&lMIDAS BOOK"
+
+#Lore. (Optional)
+lore:
+  - ""
+  - "&7Drag and drop to enchant an"
+  - "&7item with &dFortune X&7!"
+
+#Enchants (Optional)
+enchants:
+  - UNBREAKING:10
+
+#Set item flags of your item
+#List: https://skripthub.net/docs/?id=10829
+item-flags:
+  - hide enchants
+
+#Use lore layout? (Optional)
+use-layout: false
+
+#Skript effects
+#Allows executing Skript code
+#
+#See all events on the wiki
+skript-effects:
+  enchanteffect:
+    #All events: BREAK_BLOCK, DROP, ITEM_BREAK, RIGHT_CLICK, LEFT_CLICK, PLACE, KILL, DAMAGE, DRAG_AND_DROP
+    event: DRAG_AND_DROP
+    #You can cancel events with 'cancel event' line (Does not work if event is not cancellable)
+    effects:
+      - cancel event
+      - set cursor slot of player to air
+      - send "&eYou enchanted your item with &dEfficiency VI&e!" to player
+      - enchant {clicked-item} with fortune 10

@@ -1,0 +1,34 @@
+#Minecraft type of item
+type: BOOKSHELF
+
+#Display name
+name: "&eMidas bookshelf"
+
+#Lore. (Optional)
+lore:
+  - ""
+  - "&7Can drop a &egold block"
+  - "&7when broken!"
+
+#Use lore layout? (Optional)
+use-layout: false
+
+#Self drop?
+self-drop: false
+
+#Save nbt when placed?
+save-nbt: true
+
+#Skript effects
+#Allows executing Skript code
+#
+#See all events on the wiki
+skript-effects:
+  drop-gold: 
+    #Chance (from 0 to 100)
+    chance: 30
+    #All events: BREAK, BREAK_BLOCK, DROP, ITEM_BREAK, RIGHT_CLICK, LEFT_CLICK, PLACE, KILL, DAMAGE, DRAG_AND_DROP
+    event: BREAK
+    #You can cancel events with 'cancel event' line (Does not work if event is not cancellable)
+    effects:
+      - drop 1 gold block at {event-block}

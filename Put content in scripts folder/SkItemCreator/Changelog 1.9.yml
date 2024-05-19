@@ -1,0 +1,53 @@
+-- SkItemCreator can now save the NBT of blocks you place!
+  - You need to add 'save-nbt: true' in your item .yml. Only works if your item is a block.
+  - It means that when your block is placed, the block will keep the NBT and will drop the item back when broken!
+  - One downside is that blocks that have this setting true can't be pushed by pistons. Please not that because minecraft
+    does not natively support nbt for blocks, don't use blocks that can be changed by physics or other things. For example,
+    don't use grass because it can become dirt.
+  - This feature supports explosions, meaning that exploded blocks will drop the correct item.
+  - Added option 'self-drop' (true/false). False will not drop the block when broken.
+
+-- Added 'item-category' option for items. 
+  - Useful for sorting items. Can be used for class items, talismans...
+
+-- Added 'potion-color' option for potions. Value must be HEX.
+
+-- Added 'potion-effects' option for potions. Pattern: <effect>:<duration>:<amplifier>
+
+-- Added 'DRAG_AND_DROP' event for mythic-skills and skript-effects.
+
+-- Added 'BLOCK-BREAK' event for mythic-skills which was missing.
+
+-- Added 'BREAK' event which IS NOT THE SAME as 'BLOCK-BREAK'. 'BREAK' only works if your item is a block.
+   It will be triggered when your block is broken by a player, unlike 'BLOCK-BREAK' which is triggered when
+   breaking a block with your item.
+
+-- Added 'chance' option for skript-effects and mythic-skills. From 0 to 100. 
+
+-- Added placeholders for skript-effects!
+  - You can now use {clicked-item} as a placeholder for the clicked item (useful for events involving a clicked item)
+  - Also added {victim}, {attacker}, {event-block}, {clicked-entity}, {clicked-block}, {event-item}, {clicked-slot}
+
+-- Fixed a bug with skript-effects not triggering sometimes.
+
+-- Set /skic gui as the default command if the first argument is not set.
+
+-- New functions:
+
+  - SKICItemCategoryOf(item)
+    - Returns the 'item-category' flag of an item.
+    - Example: SKICItemCategoryOf(tool of player)
+
+  - SKICAllItemsOfCategory(category)
+    - Returns a list with all items with the category flag provided.
+    - Example: broadcast SKICAllItemsOfCategory("TALISMANS")
+
+  - SKICSetDisabledBehavior(itemid, behaviors)
+    - Set the disabled behaviors of an item id.
+    - Useful if you're creating a script that interacts with SkItemCreator.
+    - Example: SKICSetDisabledBehavior("my_apple", "CONSUME")
+
+  - SKICGetPlacedBlock(block)
+    - Returns the internal name of a block. Only works if 'save-nbt' is true in its config file.
+
+-- Added 'midas_bookshelf' and 'midas_book' as examples of the new features.

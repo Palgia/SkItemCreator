@@ -2,6 +2,7 @@
 import:
     org.bukkit.Material
     org.bukkit.inventory.ItemStack
+    java.lang.Integer
 #
 #LOAD CONFIG + ITEMS
 #
@@ -125,6 +126,18 @@ function SKICLoadConfig(itemload: string):
                     set {_itemsadder.itemsadder.class} to class "dev.lone.itemsadder.api.ItemsAdder"
                     set {_instance} to {_itemsadder.customstack.class}.getInstance({_item-type})
                     set {skitemcreator.items.database::%{_file_name}%::final-item} to {_instance}.getItemStack()
+            #Get category if set
+            set {_item-category} to yaml value "item-category" from loop-value
+            if {_item-category} is set:
+                set {skitemcreator.items.database::%{_file_name}%::item-category} to {_item-category}
+            #Save NBT
+            set {_save-nbt} to yaml value "save-nbt" from loop-value
+            if {_save-nbt} is set:
+                set {skitemcreator.items.database::%{_file_name}%::save-nbt} to {_save-nbt}
+            #Self drop
+            set {_self-drop} to yaml value "self-drop" from loop-value
+            if {_save-nbt} is set:
+                set {skitemcreator.items.database::%{_file_name}%::self-drop} to {_self-drop}
             #Get name
             set {_item-name} to yaml value "name" from loop-value
             if {_item-name} is set:
@@ -285,6 +298,10 @@ function SKICLoadConfig(itemload: string):
                     if {_node::2} is set:
                         set {_skill} to {_node::2}
                         add {_skill} to {skitemcreator.items.database::%{_file_name}%::mythic-skills::*}   
+                        #Chance
+                        set {_chance} to yaml value "%loop-node%.chance" from loop-value-1
+                        if {_chance} is set:
+                            set {skitemcreator.items.database::%{_file_name}%::mythic-skills::%{_skill}%::chance} to {_chance}                 
                         #Mana cost            
                         set {_mana-cost} to yaml value "%loop-node%.mana-cost" from loop-value-1
                         if {_mana-cost} is set:
@@ -320,19 +337,23 @@ function SKICLoadConfig(itemload: string):
                     set {skitemcreator.items.database::%{_file_name}%::final-item} to {_advancedenchant-api.class}.applyEnchant({_enchant}, {_enchantlevel}, {skitemcreator.items.database::%{_file_name}%::final-item})
 
             #Skript effects:
-                loop yaml node keys "skript-effects" from loop-value:            
-                    set {_node::*} to "%loop-node%" split at "."
-                    if {_node::2} is set:
-                        set {_sk-effect} to {_node::2}
-                        add {_sk-effect} to {skitemcreator.items.database::%{_file_name}%::skript-effects::*}
-                        #Check if event is set
-                        set {_event} to yaml value "%loop-node%.event" from loop-value-1
-                        if {_event} is set:
-                            set {skitemcreator.items.database::%{_file_name}%::skript-effects::%{_sk-effect}%::event} to {_event}
-                            #Register effects
-                            set {_effects::*} to yaml list "%loop-node%.effects" from loop-value-1
-                            if {_effects::*} is set:
-                                set {skitemcreator.items.database::%{_file_name}%::skript-effects::%{_sk-effect}%::effects::*} to {_effects::*} 
+            loop yaml node keys "skript-effects" from loop-value:            
+                set {_node::*} to "%loop-node%" split at "."
+                if {_node::2} is set:
+                    set {_sk-effect} to {_node::2}
+                    add {_sk-effect} to {skitemcreator.items.database::%{_file_name}%::skript-effects::*}
+                    #Check if event is set
+                    set {_event} to yaml value "%loop-node%.event" from loop-value-1
+                    if {_event} is set:
+                        set {skitemcreator.items.database::%{_file_name}%::skript-effects::%{_sk-effect}%::event} to {_event}
+                        #Chance
+                        set {_chance} to yaml value "%loop-node%.chance" from loop-value-1
+                        if {_chance} is set:
+                            set {skitemcreator.items.database::%{_file_name}%::skript-effects::%{_sk-effect}%::chance} to {_chance}  
+                        #Register effects
+                        set {_effects::*} to yaml list "%loop-node%.effects" from loop-value-1
+                        if {_effects::*} is set:
+                            set {skitemcreator.items.database::%{_file_name}%::skript-effects::%{_sk-effect}%::effects::*} to {_effects::*} 
             #Custom durability
             set {_custom-durability} to yaml value "custom-durability" from loop-value
             if {_custom-durability} is set:
@@ -357,10 +378,29 @@ function SKICLoadConfig(itemload: string):
             if {_use-layout} is not set:
                 set {_use-layout} to true
             set {skitemcreator.items.database::%{_file_name}%::use-layout} to {_use-layout}
+            #Potion color
+            set {_potion-color} to yaml value "potion-color" from loop-value
+            if {_potion-color} is set:
+                set {_color} to Integer.parseInt(unformatted {_potion-color}, 16)
+                add nbt compound of "{CustomPotionColor:%{_color}%}" to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
+            #Potion effects
+            set {_potion-effects::*} to yaml list "potion-effects" from loop-value
+            if {_potion-effects::*} is set:
+                set {_s} to 1
+                set {_base} to "{custom_potion_effects:["
+                loop {_potion-effects::*}:
+                    set {_potion-effects-cut::*} to loop-value-2 split at ":"
+                    set {_base} to "%{_base}%{id:%{_potion-effects-cut::1}%,duration:%{_potion-effects-cut::2}%,amplifier:%{_potion-effects-cut::3}%}"
+                    if {_s} = size of {_potion-effects::*}:
+                        set {_base} to "%{_base}%]}"
+                    else:
+                        set {_base} to "%{_base}%,"
+                        add 1 to {_s}
+                add nbt compound of {_base} to nbt compound of {skitemcreator.items.database::%{_file_name}%::final-item}
 
             #
             #Final register
-            #
+            #   
             #If use-layout is false, don't organize lore
             if {skitemcreator.items.database::%{_file_name}%::use-layout} is true:
                 set {skitemcreator.items.database::%{_file_name}%::final-item} to SKICLoreLayoutOrganize({skitemcreator.items.database::%{_file_name}%::final-item})
@@ -653,6 +693,40 @@ function SKICRandomGenerate(itemid: string) :: item:
                     set {_item} to SKICCalculateQuality({_item})
                 return {_item}
 #
+#FUNCTION TO RETURN THE ITEM CATEGORY OF AN ITEM
+#
+function SKICItemCategoryOf(i: item) :: string:
+
+    if SKICInternalNameOfItem({_i}) is set:
+        if {skitemcreator.items.database::%(SKICInternalNameOfItem({_i}))%::item-category} is set:
+            return {skitemcreator.items.database::%(SKICInternalNameOfItem({_i}))%::item-category}
+#
+#FUNCTION TO RETURN ALL ITEMS WITH THE SAME ITEM CATEGORY FLAG
+#
+function SKICAllItemsOfCategory(category: string) :: strings:
+
+    loop {skitemcreator.items.database::*} where [{skitemcreator.items.database::%input%::item-category} = {_category}]:
+        add loop-value to {_return::*}
+    return {_return::*}
+#
+#FUNCTION TO SET THE DISABLED BEHAVIOURS OF AN ITEM
+#
+function SKICSetDisabledBehavior(itemid: string, behaviors: strings):
+
+    if {skitemcreator.items.database::*} contains {_itemid}:
+        set {skitemcreator.items.database::%{_itemid}%::disabled-behaviors::*} to {_behaviors::*}
+#
+#FUNCTION TO RETURN THE INTERNAL NAME OF A PLACED BLOCK
+#
+function SKICGetPlacedBlock(block: block) :: string:
+
+    string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of {_block} is set   
+    set {_nbt} to string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of {_block}
+    set {_i} to (string tag "tag;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of {_block} parsed as item) 
+    add nbt of {_nbt} to nbt compound of {_i}
+    return string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
+
+#
 #Function to re-roll stats of an item
 #ONLY WORKS IF SKRPG AND SKRPGITEMSADDON ARE ENABLED
 #
@@ -731,7 +805,8 @@ function SKICRegisterItemManually(i: item, name: string):
 
     if {skitemcreator.items.database::*} does not contain {_name}:
         add {_name} to {skitemcreator.items.database::*}
-        set {skitemcreator.items.database::%{_name}%::final-item} to {_i}       
+    set {skitemcreator.items.database::%{_name}%::final-item} to {_i}    
+    set string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {skitemcreator.items.database::%{_name}%::final-item} to {_name}
 #
 #Function to return the internal name of an item
 #
@@ -876,6 +951,13 @@ function SKICCastItemSpell(p: player, i: item, action: string):
             loop {skitemcreator.items.database::%{_itemid}%::mythic-skills::*}:
                 set {_skill} to loop-value
                 if {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::event} = {_action}:
+                    #Chance
+                    if {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::chance} is set:
+                        chance of {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::chance}%:
+                            set {_chance-result-no-true} to false
+                        else:
+                            set {_chance-result-no-true} to true
+                    {_chance-result-no-true} is not true
                     #Check cooldown
                     if {skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::cooldown} is set:
                         set {_timespan} to "%{skitemcreator.items.database::%{_itemid}%::mythic-skills::%{_skill}%::cooldown}%" parsed as timespan
@@ -944,6 +1026,18 @@ on place:
         tool of player is not air
         string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
         SKICCastItemSpell(player, tool of player, "PLACE")  
+on break:
+    parse if plugin "MythicMobs" is enabled:
+        tool of player is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+        SKICCastItemSpell(player, tool of player, "BREAK_BLOCK")  
+on inventory click:
+    parse if plugin "MythicMobs" is enabled:
+        type of clicked inventory is player's inventory
+        cursor slot of player is not air
+        clicked slot is not air
+        string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of cursor slot of player is set
+        SKICCastItemSpell(player, cursor slot of player, "DRAG_AND_DROP")  
 #
 #SKRIPT EFFECTS (EVENT)
 #
@@ -953,12 +1047,39 @@ function SKICParseSkriptEffect(p: player, i: item, action: string) :: boolean:
     if {skitemcreator.items.database::%{_internal}%::skript-effects::*} is set:
         loop {skitemcreator.items.database::%{_internal}%::skript-effects::*}:
             set {_ske} to loop-value
+            #Chance
+            if {skitemcreator.items.database::%{_internal}%::skript-effects::%{_ske}%::chance} is set:
+                chance of {skitemcreator.items.database::%{_internal}%::skript-effects::%{_ske}%::chance}%:
+                    set {_chance-result-no-true} to false
+                else:
+                    set {_chance-result-no-true} to true
+            {_chance-result-no-true} is not true
             if {skitemcreator.items.database::%{_internal}%::skript-effects::%{_ske}%::event} = {_action}:
                 loop {skitemcreator.items.database::%{_internal}%::skript-effects::%{_ske}%::effects::*}:
-                    if loop-value-2 is "cancel event":
+                    #Replace placeholders
+                    set {_effect} to loop-value-2      
+                    if {_effect} contains "{clicked-slot}":
+                        replace all "{clicked-item}" with "slot %{skitemcreator.temporary.placeholder::%uuid of {_p}%::clicked-slot}% of player's inventory" in {_effect}       
+                    if {_effect} contains "{clicked-item}":
+                        replace all "{clicked-item}" with "{skitemcreator.temporary.placeholder::%uuid of {_p}%::clicked-item}" in {_effect}       
+                    if {_effect} contains "{victim}":
+                        replace all "{victim}" with "{skitemcreator.temporary.placeholder::%uuid of {_p}%::victim}" in {_effect}       
+                    if {_effect} contains "{attacker}":
+                        replace all "{attacker}" with "{skitemcreator.temporary.placeholder::%uuid of {_p}%::attacker}" in {_effect}   
+                    if {_effect} contains "{event-item}":
+                        replace all "{event-item}" with "{skitemcreator.temporary.placeholder::%uuid of {_p}%::event-item}" in {_effect}   
+                    if {_effect} contains "{clicked-entity}":
+                        replace all "{clicked-entity}" with "{skitemcreator.temporary.placeholder::%uuid of {_p}%::clicked-entity}" in {_effect}   
+                    if {_effect} contains "{clicked-block}":
+                        replace all "{clicked-block}" with "{skitemcreator.temporary.placeholder::%uuid of {_p}%::clicked-block}" in {_effect}   
+                    if {_effect} contains "{event-block}":
+                        replace all "{event-block}" with "{skitemcreator.temporary.placeholder::%uuid of {_p}%::event-block}" in {_effect}   
+
+                    #Cancel event
+                    if {_effect} is "cancel event":
                         set {_cancel} to true
                     else:
-                        parse effect loop-value-2 from {_p}
+                        parse effect {_effect} from {_p}
     return {_cancel}
 
 
@@ -966,6 +1087,8 @@ on break:
     event is not cancelled
     tool of player is not air
     string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of player%::event-block} to event-block
     set {_cancel} to SKICParseSkriptEffect(player, tool of player, "BREAK_BLOCK")
     if {_cancel} is true:
         cancel event
@@ -973,6 +1096,8 @@ on drop:
     event is not cancelled
     tool of player is not air
     string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of player%::event-item} to event-item
     set {_cancel} to SKICParseSkriptEffect(player, tool of player, "DROP")
     if {_cancel} is true:
         cancel event
@@ -980,11 +1105,17 @@ on player tool break:
     event is not cancelled
     tool of player is not air
     string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of player%::event-item} to event-item
     SKICParseSkriptEffect(player, tool of player, "ITEM_BREAK")
 on right click:
     event is not cancelled
     tool of player is not air
     string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of player%::event-item} to tool of player
+    set {skitemcreator.temporary.placeholder::%uuid of player%::clicked-block} to clicked block
+    set {skitemcreator.temporary.placeholder::%uuid of player%::clicked-entity} to clicked entity
     set {_cancel} to SKICParseSkriptEffect(player, tool of player, "RIGHT_CLICK")
     if {_cancel} is true:
         cancel event
@@ -992,6 +1123,10 @@ on left click:
     event is not cancelled
     tool of player is not air
     string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of player%::event-item} to tool of player
+    set {skitemcreator.temporary.placeholder::%uuid of player%::clicked-block} to clicked block
+    set {skitemcreator.temporary.placeholder::%uuid of player%::clicked-entity} to clicked entity
     set {_cancel} to SKICParseSkriptEffect(player, tool of player, "LEFT_CLICK")
     if {_cancel} is true:
         cancel event
@@ -999,6 +1134,8 @@ on place:
     event is not cancelled
     tool of player is not air
     string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of player is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of player%::event-block} to event-block
     set {_cancel} to SKICParseSkriptEffect(player, tool of player, "PLACE")
     if {_cancel} is true:
         cancel event
@@ -1007,6 +1144,10 @@ on damage:
     attacker is set
     tool of attacker is not air
     string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of attacker is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of attacker%::event-item} to tool of attacker
+    set {skitemcreator.temporary.placeholder::%uuid of attacker%::victim} to victim
+    set {skitemcreator.temporary.placeholder::%uuid of attacker%::attacker} to attacker
     set {_cancel} to SKICParseSkriptEffect(attacker, tool of attacker, "DAMAGE")
     if {_cancel} is true:
         cancel event
@@ -1015,17 +1156,34 @@ on death:
     attacker is set
     tool of attacker is not air
     string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of tool of attacker is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of attacker%::event-item} to tool of attacker
+    set {skitemcreator.temporary.placeholder::%uuid of attacker%::victim} to victim
+    set {skitemcreator.temporary.placeholder::%uuid of attacker%::attacker} to attacker
     set {_cancel} to SKICParseSkriptEffect(attacker, tool of attacker, "KILL")
     if {_cancel} is true:
         cancel event
-
+on inventory click:
+    type of clicked inventory is player's inventory
+    cursor slot of player is not air
+    clicked slot is not air
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of cursor slot of player is set
+    #Save placeholders
+    set {skitemcreator.temporary.placeholder::%uuid of player%::clicked-slot} to index of clicked slot
+    set {skitemcreator.temporary.placeholder::%uuid of player%::clicked-item} to clicked slot
+    set {_cancel} to SKICParseSkriptEffect(player, cursor slot of player, "DRAG_AND_DROP")
+    if {_cancel} is true:
+        cancel event
 # 
 #COMMANDS
 #
-command /skitemcreator <string> [<text>]:
+command /skitemcreator <string=gui> [<text>]:
     aliases: skic, ski
     permission: skitemcreator.admin
     trigger:
+        if arg 1 is not set:
+            SKICOpenGUI(player, "ALL", 1)
+            stop
         if arg 1 is "get":
             if arg 2 is set:
                 if {skitemcreator.items.database::*} contains arg 2:
@@ -1257,7 +1415,7 @@ function SKICDurabilityFullRepair(item: item) :: item:
     else:
         return {_item}
 #
-#FUNCTION TO SET THE DURABILITY OF AN ITEM
+#FUNCTION TO SET THE DURABILITY OF AN ITEM. ONLY WORKS IF THE ITEM HAS CUSTOM DURABILITY
 #Returns the item
 #
 function SKICDurabilitySet(item: item, amount: integer) :: item:
@@ -1287,6 +1445,18 @@ function SKICDurabilitySet(item: item, amount: integer) :: item:
         return {_item}
     else:
         return {_item}
+#
+#FUNCTION TO DEFINE THE DURABILITY OF AN ITEM. USEFUL FOR CREATING YOUR ITEMS.
+#Returns the item
+#
+function SKICDurabilitySetBase(item: item, amount: integer) :: item:
+
+    set int tag "tag;ITEMCREATOR-MAX-DURABILITY" of nbt compound of {_item} to {_amount}
+    set int tag "tag;ITEMCREATOR-CURRENT-DURABILITY" of nbt compound of {_item} to {_amount}
+    add SKICDurabilityPlaceholderUpdate({_item}) to lore of {_item}
+    return {_item}
+
+
 #
 #EVENTS FOR DAMAGING CUSTOM DURABILITY
 #
@@ -1387,3 +1557,58 @@ on armor change:
             else:
                 drop {_i} at player
             set boots of player to air
+
+# _   _ ______ _____   _____  ___  _   _ ___________ 
+#| \ | || ___ \_   _| /  ___|/ _ \| | | |  ___| ___ \
+#|  \| || |_/ / | |   \ `--./ /_\ \ | | | |__ | |_/ /
+#| . ` || ___ \ | |    `--. \  _  | | | |  __||    / 
+#| |\  || |_/ / | |   /\__/ / | | \ \_/ / |___| |\ \ 
+#\_| \_/\____/  \_/   \____/\_| |_/\___/\____/\_| \_|
+                                                                                                        
+on place:   
+    string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of event-item is set
+    {skitemcreator.items.database::%string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of event-item%::save-nbt} is true
+    set {_nbt} to nbt compound of event-block
+
+    set string tag "tag;SKIC-NBTSAVER-NBT" of {_nbt} to "%nbt compound of event-item%"
+    set string tag "tag;SKIC-NBTSAVER-ITEMTYPE" of {_nbt} to "%type of event-item%"
+
+on break:
+    gamemode of player is not creative
+    string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of event-block is set 
+    clear drops  
+    set {_nbt} to string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of event-block
+    set {_i} to (string tag "tag;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of event-block parsed as item) 
+    add nbt of {_nbt} to nbt compound of {_i}
+    #Drop self ?
+    if {skitemcreator.items.database::%string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}%::self-drop} is not false:
+        drop {_i} at event-location
+    #Skript effects
+    set {skitemcreator.temporary.placeholder::%uuid of player%::event-block} to event-block
+    set {_cancel} to SKICParseSkriptEffect(player, {_i}, "BREAK")
+    if {_cancel} is true:
+        cancel event
+    #Mythic mobs skills
+    parse if plugin "MythicMobs" is enabled:
+        SKICCastItemSpell(player, {_i}, "BREAK")  
+#Disable physics
+on piston extend:
+    loop moved blocks:
+        if string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set:
+            cancel event
+on piston retract:
+    loop moved blocks:
+        if string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set:
+            cancel event
+#Explosion
+on explode:
+    loop exploded blocks:
+        string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set 
+        remove loop-block from exploded blocks
+        set {_nbt} to string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of loop-block
+        set {_i} to (string tag "tag;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of loop-block parsed as item) 
+        add nbt of {_nbt} to nbt compound of {_i}
+        #Drop self ?
+        if {skitemcreator.items.database::%string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}%::self-drop} is not false:
+            drop {_i} at loop-block
+        set loop-block to air

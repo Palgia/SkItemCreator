@@ -1,0 +1,26 @@
+#
+#Note that when the item is generated, a "SKIC-INTERNAL-NAME" tag is added
+#to the item's NBT data,  which corresponds to the file name.
+#
+
+#Minecraft type of item
+type: POTION
+
+#Display name
+name: "&x&F&B&0&8&E&BG&x&F&7&1&7&E&9O&x&F&2&2&5&E&8D &x&E&E&3&4&E&6P&x&E&9&4&3&E&4O&x&E&5&5&1&E&2T&x&E&0&6&0&E&1I&x&D&C&6&E&D&FO&x&D&7&7&D&D&DN"
+
+#Lore. (Optional)
+lore:
+  - "&7&oBecome a true god!"
+
+#Use layout (Optional)
+use-layout: false
+
+#Custom color for potions. Uses HEX; without the #. (Optional)
+potion-color: "1d1d21"
+
+#Effects for potions. Pattern must be <effect>:<duration>:<amplifier>
+potion-effects:
+  - "resistance:1000:2"
+  - "regeneration:1000:2"
+  - "speed:1000:2"
