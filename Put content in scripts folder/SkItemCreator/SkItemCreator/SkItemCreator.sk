@@ -716,13 +716,20 @@ function SKICSetDisabledBehavior(itemid: string, behaviors: strings):
     if {skitemcreator.items.database::*} contains {_itemid}:
         set {skitemcreator.items.database::%{_itemid}%::disabled-behaviors::*} to {_behaviors::*}
 #
+#FUNCTION TO SET TRUE OR FALSE THE SAVE-NBT OPTION
+#
+function SKICSetSaveNBT(itemid: string, value: boolean):
+
+    if {skitemcreator.items.database::*} contains {_itemid}:
+        set {skitemcreator.items.database::%{_itemid}%::save-nbt} to {_value}
+#
 #FUNCTION TO RETURN THE INTERNAL NAME OF A PLACED BLOCK
 #
 function SKICGetPlacedBlock(block: block) :: string:
 
-    string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of {_block} is set   
-    set {_nbt} to string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of {_block}
-    set {_i} to (string tag "tag;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of {_block} parsed as item) 
+    string tag "custom;SKIC-NBTSAVER-NBT" of nbt compound of {_block} is set   
+    set {_nbt} to string tag "custom;SKIC-NBTSAVER-NBT" of nbt compound of {_block}
+    set {_i} to (string tag "custom;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of {_block} parsed as item) 
     add nbt of {_nbt} to nbt compound of {_i}
     return string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
 
@@ -1570,15 +1577,20 @@ on place:
     {skitemcreator.items.database::%string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of event-item%::save-nbt} is true
     set {_nbt} to nbt compound of event-block
 
-    set string tag "tag;SKIC-NBTSAVER-NBT" of {_nbt} to "%nbt compound of event-item%"
-    set string tag "tag;SKIC-NBTSAVER-ITEMTYPE" of {_nbt} to "%type of event-item%"
+    broadcast "&e%{_nbt}%"
+
+    set string tag "custom;SKIC-NBTSAVER-NBT" of {_nbt} to "%nbt compound of event-item%"
+    set string tag "custom;SKIC-NBTSAVER-ITEMTYPE" of {_nbt} to "%type of event-item%"
+
+    broadcast "&b%{_nbt}%"
+
 
 on break:
     gamemode of player is not creative
-    string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of event-block is set 
+    string tag "custom;SKIC-NBTSAVER-NBT" of nbt compound of event-block is set 
     clear drops  
-    set {_nbt} to string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of event-block
-    set {_i} to (string tag "tag;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of event-block parsed as item) 
+    set {_nbt} to string tag "custom;SKIC-NBTSAVER-NBT" of nbt compound of event-block
+    set {_i} to (string tag "custom;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of event-block parsed as item) 
     add nbt of {_nbt} to nbt compound of {_i}
     #Drop self ?
     if {skitemcreator.items.database::%string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}%::self-drop} is not false:
@@ -1594,21 +1606,21 @@ on break:
 #Disable physics
 on piston extend:
     loop moved blocks:
-        if string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set:
+        if string tag "custom;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set:
             cancel event
 on piston retract:
     loop moved blocks:
-        if string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set:
+        if string tag "custom;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set:
             cancel event
 #Explosion
 on explode:
     loop exploded blocks:
-        string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set 
+        string tag "custom;SKIC-NBTSAVER-NBT" of nbt compound of loop-block is set 
         remove loop-block from exploded blocks
-        set {_nbt} to string tag "tag;SKIC-NBTSAVER-NBT" of nbt compound of loop-block
-        set {_i} to (string tag "tag;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of loop-block parsed as item) 
+        set {_nbt} to string tag "custom;SKIC-NBTSAVER-NBT" of nbt compound of loop-block
+        set {_i} to (string tag "custom;SKIC-NBTSAVER-ITEMTYPE" of nbt compound of loop-block parsed as item) 
         add nbt of {_nbt} to nbt compound of {_i}
         #Drop self ?
-        if {skitemcreator.items.database::%string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}%::self-drop} is not false:
+        if {skitemcreator.items.database::%string tag "custom;SKIC-INTERNAL-NAME" of nbt compound of {_i}%::self-drop} is not false:
             drop {_i} at loop-block
         set loop-block to air
