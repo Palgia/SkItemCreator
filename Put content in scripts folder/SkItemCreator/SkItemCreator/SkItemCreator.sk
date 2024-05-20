@@ -1577,12 +1577,8 @@ on place:
     {skitemcreator.items.database::%string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of event-item%::save-nbt} is true
     set {_nbt} to nbt compound of event-block
 
-    broadcast "&e%{_nbt}%"
-
     set string tag "custom;SKIC-NBTSAVER-NBT" of {_nbt} to "%nbt compound of event-item%"
     set string tag "custom;SKIC-NBTSAVER-ITEMTYPE" of {_nbt} to "%type of event-item%"
-
-    broadcast "&b%{_nbt}%"
 
 
 on break:
