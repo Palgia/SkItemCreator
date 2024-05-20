@@ -1,4 +1,0 @@
--- Added function SKICSetSaveNBT(itemid: string, value: boolean);
-  - Set the true/false value of 'save-nbt'
-
-  

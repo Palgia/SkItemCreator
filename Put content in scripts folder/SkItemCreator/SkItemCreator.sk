@@ -821,6 +821,13 @@ function SKICInternalNameOfItem(i: item) :: string:
 
     return string tag "tag;SKIC-INTERNAL-NAME" of nbt compound of {_i}
 #
+#Function to return an item from an ID
+#
+function SKICGetItemFromID(id: string) :: item:
+
+    return {skitemcreator.items.database::%{_id}%::final-item}
+    
+#
 #Function for pagination (GUI)
 #
 function SKICPagination(page: number, elementsPerPage: number, objects: objects) :: objects:

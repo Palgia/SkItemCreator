@@ -1,0 +1,7 @@
+-- Added function SKICSetSaveNBT(itemid: string, value: boolean)
+  - Set the true/false value of 'save-nbt'
+  - Example: SKICSetSaveNBT("my_block", true)
+
+-- Added function SKICGetItemFromID(id: string)
+  - Returns the item from an ID
+  - Example: give SKICGetItemFromID("my_sword") to player
